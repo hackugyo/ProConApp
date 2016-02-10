@@ -1,5 +1,7 @@
 package jp.ne.hatena.hackugyo.procon.model;
 
+import android.util.Patterns;
+
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
@@ -95,5 +97,9 @@ public class Memo {
 
     public String getCitationResource() {
         return citationResource;
+    }
+
+    public boolean isForUrl() {
+        return Patterns.WEB_URL.matcher(this.citationResource).matches();
     }
 }

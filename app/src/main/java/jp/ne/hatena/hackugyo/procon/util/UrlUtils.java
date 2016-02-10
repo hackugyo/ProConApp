@@ -6,6 +6,7 @@ import android.webkit.URLUtil;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.HashMap;
+import java.util.regex.Pattern;
 
 /**
  * URL文字列の処理関連で誤実装しがちな箇所を切り出したユーティリティ
@@ -51,4 +52,19 @@ public class UrlUtils {
         }
         return sb.toString();
     }
+
+    public static boolean isTwitterUrl(String url) {
+        return TWITTER_POST_URL.matcher(url).matches();
+    }
+
+    private static String TWITTER_DOMAIN_NAME = "twitter.com";
+    public static final Pattern TWITTER_POST_URL = Pattern.compile(
+            "((?:(http|https|Http|Https|rtsp|Rtsp):\\/\\/(?:(?:[a-zA-Z0-9\\$\\-\\_\\.\\+\\!\\*\\'\\(\\)"
+                    + "\\,\\;\\?\\&\\=]|(?:\\%[a-fA-F0-9]{2})){1,64}(?:\\:(?:[a-zA-Z0-9\\$\\-\\_"
+                    + "\\.\\+\\!\\*\\'\\(\\)\\,\\;\\?\\&\\=]|(?:\\%[a-fA-F0-9]{2})){1,25})?\\@)?)?"
+                    + "(?:" + TWITTER_DOMAIN_NAME + ")"
+                    + "(?:\\:\\d{1,5})?)" // plus option port number
+                    + "(\\/(?:(?:[" + Patterns.GOOD_IRI_CHAR + "\\;\\/\\?\\:\\@\\&\\=\\#\\~"  // plus option query params
+                    + "\\-\\.\\+\\!\\*\\'\\(\\)\\,\\_])|(?:\\%[a-fA-F0-9]{2}))*)?"
+                    + "(?:\\b|$)");
 }

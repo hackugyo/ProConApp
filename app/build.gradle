@@ -152,6 +152,9 @@ dependencies {
     compile 'io.realm:realm-android:0.87.0'
     compile 'com.j256.ormlite:ormlite-android:4.48'
 
+    // Url Preview
+    compile 'org.jsoup:jsoup:1.8.3' // required
+    compile 'com.leocardz:link-preview:1.2.1@aar'
 
     // Parcelablecompile
     compile "org.parceler:parceler-api:$PARCELER_VERSION"

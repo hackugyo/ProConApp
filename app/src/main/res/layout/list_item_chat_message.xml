@@ -91,6 +91,7 @@
                 android:layout_gravity="left"
                 android:textSize="12sp"
                 android:maxLines="1"
+                android:ellipsize="end"
                 android:textColor="@android:color/black"
                 tools:text="Benson 2005"
                 />

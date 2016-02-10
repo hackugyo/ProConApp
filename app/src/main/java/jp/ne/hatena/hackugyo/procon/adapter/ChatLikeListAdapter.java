@@ -10,43 +10,67 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.leocardz.link.preview.library.LinkPreviewCallback;
+import com.leocardz.link.preview.library.SourceContent;
+import com.leocardz.link.preview.library.TextCrawler;
+
 import java.util.List;
 
 import jp.ne.hatena.hackugyo.procon.R;
 import jp.ne.hatena.hackugyo.procon.model.Memo;
 import jp.ne.hatena.hackugyo.procon.ui.RecyclerClickable;
+import jp.ne.hatena.hackugyo.procon.util.LogUtils;
 import jp.ne.hatena.hackugyo.procon.util.StringUtils;
+import jp.ne.hatena.hackugyo.procon.util.UrlUtils;
 
 /**
  * Created by kwatanabe on 15/08/27.
  */
 public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapter.ChatLikeViewHolder> {
 
+    private static final int VIEW_TYPE_NORMAL_BUBBLE = 0;
+    private static final int VIEW_TYPE_URL_PREVIEW = 1;
     private final List<Memo> mMemos;
     private final RecyclerClickable mOnClickListener;
+    private final TextCrawler textCrawler;
     private Activity context;
 
     public ChatLikeListAdapter(Activity context, List<Memo> memos) {
         this.context = context;
         this.mMemos = memos;
-        mOnClickListener = ( (context instanceof RecyclerClickable)  ? (RecyclerClickable)context : null );
+        mOnClickListener = ((context instanceof RecyclerClickable) ? (RecyclerClickable) context : null);
+        textCrawler = new TextCrawler();
     }
 
 
     @Override
     public ChatLikeListAdapter.ChatLikeViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.list_item_chat_message, parent, false);
-        return new ChatLikeViewHolder(v);
+        if (viewType == VIEW_TYPE_URL_PREVIEW) {
+            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.list_item_chat_message, parent, false);
+            return new UrlPreviewViewHolder(v);
+        } else {
+            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.list_item_chat_message, parent, false);
+            return new ChatLikeViewHolder(v);
+        }
     }
 
     @Override
-    public void onBindViewHolder(ChatLikeListAdapter.ChatLikeViewHolder holder, final int position) {
+    public void onBindViewHolder(final ChatLikeListAdapter.ChatLikeViewHolder holder, final int position) {
         Memo memo = mMemos.get(position);
-        boolean isPro = memo.isPro() ;
+        boolean isPro = memo.isPro();
         //to simulate whether it me or other sender
         setAlignment(holder, isPro);
         holder.numberOfTheMessage.setText("#" + memo.getId());
-        holder.txtMessage.setText(memo.getMemo());
+        // 状態判定
+        if (holder.getItemViewType() == VIEW_TYPE_URL_PREVIEW) {
+            if (StringUtils.isEmpty(memo.getMemo())) {
+                ((UrlPreviewViewHolder) holder).previewAsync(memo.getCitationResource(), textCrawler, position);
+            } else {
+                holder.txtMessage.setText(memo.getMemo());
+            }
+        } else {
+            holder.txtMessage.setText(memo.getMemo());
+        }
         holder.txtInfo.setText(memo.getDate());
         if (StringUtils.isEmpty(memo.getCitationResource())) {
             holder.citationResourceContainer.setVisibility(View.GONE);
@@ -81,6 +105,13 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
             }
         });
 
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        Memo memo = mMemos.get(position);
+        if (memo.isForUrl()) return VIEW_TYPE_URL_PREVIEW;
+        return VIEW_TYPE_NORMAL_BUBBLE;
     }
 
     @Override
@@ -163,7 +194,58 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
             citationResource = (TextView) v.findViewById(R.id.message_source);
             pagesMark = (TextView) v.findViewById(R.id.message_source_pages_mark);
             pages = (TextView) v.findViewById(R.id.message_source_pages);
-            citationResourceContainer = (LinearLayout)v.findViewById(R.id.citation_resource_container);
+            citationResourceContainer = (LinearLayout) v.findViewById(R.id.citation_resource_container);
         }
     }
+
+
+    public class UrlPreviewViewHolder extends ChatLikeViewHolder {
+
+        public UrlPreviewViewHolder(View v) {
+            super(v);
+        }
+
+
+
+        public void previewAsync(final String url, TextCrawler textCrawler, final int position) {
+            txtMessage.setText("読込中");
+            textCrawler.makePreview(
+                    new LinkPreviewCallback() {
+                        @Override
+                        public void onPre() {
+
+                        }
+
+                        @Override
+                        public void onPos(SourceContent sourceContent, boolean isNull) {
+                            String content = preview(url, sourceContent, isNull);
+                            LogUtils.i("position " + position + ": " + content + " for " + url);
+                            mMemos.get(position).setMemo(content);
+                        }
+                    },
+                    url, TextCrawler.NONE);
+        }
+
+        private String preview(String originalUrl, SourceContent sourceContent, boolean isNull) {
+
+            if (false) { //!StringUtils.isSame(originalUrl, sourceContent.getFinalUrl())) {
+                LogUtils.i("ignore " + originalUrl + " -> " + sourceContent.getFinalUrl());
+                return null;
+            } else if (isNull || sourceContent.getFinalUrl().equals("")) {
+                // 失敗
+                txtMessage.setText("読込失敗");
+                return null;
+            } else {
+                String result;
+                if (UrlUtils.isTwitterUrl(originalUrl)) {
+                    result = sourceContent.getHtmlCode();
+                } else {
+                    result = sourceContent.getDescription();
+                }
+                txtMessage.setText(result);
+                return result;
+            }
+        }
+    }
+
 }

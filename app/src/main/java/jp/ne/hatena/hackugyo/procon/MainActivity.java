@@ -1,6 +1,9 @@
 package jp.ne.hatena.hackugyo.procon;
 
+import android.content.ActivityNotFoundException;
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -15,6 +18,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -24,7 +28,10 @@ import jp.ne.hatena.hackugyo.procon.adapter.ChatLikeListAdapter;
 import jp.ne.hatena.hackugyo.procon.model.Memo;
 import jp.ne.hatena.hackugyo.procon.model.MemoRepository;
 import jp.ne.hatena.hackugyo.procon.ui.RecyclerClickable;
+import jp.ne.hatena.hackugyo.procon.util.FragmentUtils;
 import jp.ne.hatena.hackugyo.procon.util.LogUtils;
+import jp.ne.hatena.hackugyo.procon.util.StringUtils;
+import jp.ne.hatena.hackugyo.procon.util.UrlUtils;
 
 public class MainActivity extends AppCompatActivity implements RecyclerClickable {
 
@@ -78,6 +85,18 @@ public class MainActivity extends AppCompatActivity implements RecyclerClickable
     }
 
     @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent fromToDataIntent) {
+        if (FragmentUtils.isSameRequestCode(requestCode, REQUEST_PICK_BROWSER)) {
+            if (fromToDataIntent == null) return;
+            fromToDataIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(fromToDataIntent);
+        } else {
+            super.onActivityResult(requestCode, resultCode, fromToDataIntent);
+        }
+    }
+
+
+    @Override
     protected void onResume() {
         super.onResume();
         memoRepository.onResume(this);
@@ -108,11 +127,12 @@ public class MainActivity extends AppCompatActivity implements RecyclerClickable
 
             @Override
             public void onClick(View v) {
-                if (!mContentEditText.getText().toString().equals("")) {
-                    String text = mContentEditText.getText().toString();
+                String content = mContentEditText.getText().toString();
+                String citationResource =  mResourceEditText.getText().toString();
+                if (StringUtils.isPresent(content) || UrlUtils.isValidUrl(citationResource)) {
                     Calendar cal = Calendar.getInstance();
                     //保存処置
-                    insertMemo(text, cal, mResourceEditText.getText().toString(), mPagesEditText.getText().toString(), true);
+                    insertMemo(content, cal, citationResource, mPagesEditText.getText().toString(), true);
                     //ListView に設置
                     mChatLikeListAdapter.notifyDataSetChanged();
                     //Keyboard の消去
@@ -141,11 +161,12 @@ public class MainActivity extends AppCompatActivity implements RecyclerClickable
 
             @Override
             public void onClick(View v) {
-                if (!mContentEditText.getText().toString().equals("")) {
-                    String text = mContentEditText.getText().toString();
+                String content = mContentEditText.getText().toString();
+                String citationResource =  mResourceEditText.getText().toString();
+                if (StringUtils.isPresent(content) || UrlUtils.isValidUrl(citationResource)) {
                     Calendar cal = Calendar.getInstance();
                     //保存処置
-                    insertMemo(text, cal, mResourceEditText.getText().toString(), mPagesEditText.getText().toString(), false);
+                    insertMemo(content, cal, citationResource, mPagesEditText.getText().toString(),  false);
                     //ListView に設置
                     mChatLikeListAdapter.notifyDataSetChanged();
                     //Keyboard の消去
@@ -201,6 +222,10 @@ public class MainActivity extends AppCompatActivity implements RecyclerClickable
     public void onRecyclerClicked(View v, int position) {
         //snackbar をクリックで消す処置
         if (snackbar != null) snackbar.dismiss();
+        Memo memo = mMemos.get(position);
+        if (memo.isForUrl()) {
+            launchExternalBrowser(memo.getCitationResource());
+        }
     }
 
     @Override
@@ -209,7 +234,7 @@ public class MainActivity extends AppCompatActivity implements RecyclerClickable
 
     @Override
     public boolean onRecyclerLongClicked(View v, final int position) {
-
+        // TODO 20160210 copy to clipboard
         final LinearLayout layout = (LinearLayout) findViewById(R.id.snackbar);
         //snackbar の表示
         snackbar = Snackbar.make(layout, "削除しますか", Snackbar.LENGTH_LONG)
@@ -226,5 +251,48 @@ public class MainActivity extends AppCompatActivity implements RecyclerClickable
         return true;
     }
 
+
+    /***********************************************
+     * intent handling *
+     **********************************************/
+
+    /**
+     * 外部ブラウザを選択させて表示します．<br>
+     * Andorid4.0以降，外部ブラウザが端末にインストールされていない場合があるため，<br>
+     * このメソッドを利用することを推奨します．<br>
+     *
+     * @param url
+     */
+    public void launchExternalBrowser(String url) {
+        selectBrowser(url);
+    }
+
+    /***********************************************
+     * ブラウザ起動*
+     ***********************************************/
+
+    protected static final int REQUEST_PICK_BROWSER = 0x1111;
+
+    /**
+     * urlを処理できるアプリ（ブラウザアプリ）の一覧を表示するchooserを出します．
+     * {@link #onActivityResult(int, int, Intent)}で，選択されたアプリを起動します．
+     *
+     * @param url
+     */
+    private void selectBrowser(String url) {
+        selectBrowser(url, REQUEST_PICK_BROWSER);
+    }
+
+    private void selectBrowser(String url, int requestId) {
+        if (url == null) url = "";
+        Intent mainIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+        Intent chooserIntent = Intent.createChooser(mainIntent, "アプリケーションを選択");
+        try {
+            startActivityForResult(chooserIntent, requestId);
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(this, "ブラウザアプリがインストールされていません。", Toast.LENGTH_LONG).show();
+            LogUtils.e("browser activity cannot found.");
+        }
+    }
 
 }
