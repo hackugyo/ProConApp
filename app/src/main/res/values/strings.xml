@@ -1,0 +1,13 @@
+<resources>
+    <string name="action_settings">Settings</string>
+    <string name="hint">note here</string>
+    <string name="title_activity_sub">SubActivity</string>
+    <string name="app_map">地図で表示</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="yes">はい</string>
+    <string name="no">いいえ</string>
+
+
+    <string name="save_as_pro">↑ 賛成意見</string>
+    <string name="save_as_con">反対意見 ↑</string>
+</resources>

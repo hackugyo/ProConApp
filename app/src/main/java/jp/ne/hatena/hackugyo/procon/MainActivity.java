@@ -1,0 +1,230 @@
+package jp.ne.hatena.hackugyo.procon;
+
+import android.content.Context;
+import android.os.Bundle;
+import android.support.design.widget.Snackbar;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
+
+import jp.ne.hatena.hackugyo.procon.adapter.ChatLikeListAdapter;
+import jp.ne.hatena.hackugyo.procon.model.Memo;
+import jp.ne.hatena.hackugyo.procon.model.MemoRepository;
+import jp.ne.hatena.hackugyo.procon.ui.RecyclerClickable;
+import jp.ne.hatena.hackugyo.procon.util.LogUtils;
+
+public class MainActivity extends AppCompatActivity implements RecyclerClickable {
+
+    ArrayList<Memo> mMemos = new ArrayList<Memo>();
+    RecyclerView mListView;
+    ChatLikeListAdapter mChatLikeListAdapter;
+    private MemoRepository memoRepository;
+    Snackbar snackbar;
+    private EditText mContentEditText;
+    private EditText mPagesEditText;
+    private EditText mResourceEditText;
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        //toolbar の設置
+        setContentView(R.layout.activity_main);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar_actionbar);
+
+        if (toolbar != null) {
+            setSupportActionBar(toolbar);
+        }
+        memoRepository = new MemoRepository(this);
+
+        mContentEditText = (EditText) findViewById(R.id.editText);
+        mResourceEditText = (EditText) findViewById(R.id.editText_from);
+        mPagesEditText = (EditText) findViewById(R.id.editText_pages);
+        setupAddAsProButton();
+        setupAddAsConButton();
+
+        mListView = (RecyclerView) findViewById(R.id.listView);
+        mChatLikeListAdapter = new ChatLikeListAdapter(this, mMemos);
+        mListView.setAdapter(mChatLikeListAdapter);
+        LinearLayoutManager llm = new LinearLayoutManager(this);
+        llm.setOrientation(LinearLayoutManager.VERTICAL);
+        mListView.setLayoutManager(llm);
+
+
+        //memo の表示
+        loadMemo();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        //menu の表示
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_main, menu);
+
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        memoRepository.onResume(this);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (memoRepository != null) memoRepository.onPause();
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        //icon 押下時の処置
+        if (id == R.id.menu_globe) {
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
+    private Button setupAddAsProButton() {
+
+        //Button の処理
+        View.OnClickListener listener = new View.
+                OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                if (!mContentEditText.getText().toString().equals("")) {
+                    String text = mContentEditText.getText().toString();
+                    Calendar cal = Calendar.getInstance();
+                    //保存処置
+                    insertMemo(text, cal, mResourceEditText.getText().toString(), mPagesEditText.getText().toString(), true);
+                    //ListView に設置
+                    mChatLikeListAdapter.notifyDataSetChanged();
+                    //Keyboard の消去
+                    InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    inputMethodManager.hideSoftInputFromWindow(v.getWindowToken(), 0);
+                    //EditText 内のデータ消去
+                    mContentEditText.getEditableText().clear();
+                    mResourceEditText.getEditableText().clear();
+                    mPagesEditText.getEditableText().clear();
+
+                }
+
+            }
+        };
+
+        Button viewById = (Button) findViewById(R.id.button_save_as_pro);
+        viewById.setOnClickListener(listener);
+        return viewById;
+    }
+
+    private Button setupAddAsConButton() {
+
+        //Button の処理
+        View.OnClickListener listener = new View.
+                OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                if (!mContentEditText.getText().toString().equals("")) {
+                    String text = mContentEditText.getText().toString();
+                    Calendar cal = Calendar.getInstance();
+                    //保存処置
+                    insertMemo(text, cal, mResourceEditText.getText().toString(), mPagesEditText.getText().toString(), false);
+                    //ListView に設置
+                    mChatLikeListAdapter.notifyDataSetChanged();
+                    //Keyboard の消去
+                    InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    inputMethodManager.hideSoftInputFromWindow(v.getWindowToken(), 0);
+                    //EditText 内のデータ消去
+                    mContentEditText.getEditableText().clear();
+                    mResourceEditText.getEditableText().clear();
+                    mPagesEditText.getEditableText().clear();
+
+                }
+
+            }
+        };
+        Button viewById = (Button) findViewById(R.id.button_save_as_con);
+        viewById.setOnClickListener(listener);
+        return viewById;
+    }
+
+
+    private void loadMemo() {
+        //database からすべてを呼び出し、メモに追加する
+        List<Memo> memos = memoRepository.findAll();
+        mMemos.addAll(memos);
+        mChatLikeListAdapter.notifyDataSetChanged();
+    }
+
+    private void insertMemo(String text, Calendar cal, String resource, String pages, boolean isPro) {
+        //memo を追加し、セーブする
+        Memo memo = new Memo(cal, text, isPro);
+        memo.setCitationResource(resource);
+        memo.setPages(pages);
+        if(memoRepository.save(memo)) {
+            mMemos.add(memo);
+        }
+    }
+
+    private void deleteMemo(int position) {
+        //memo を消去する
+        Memo memo = mMemos.get(position);
+        if (memoRepository.delete(memo) == 1) {
+            mMemos.remove(memo);
+        } else {
+            LogUtils.i("something wrong");
+        }
+    }
+
+    /****************************************
+     * {@link RecyclerClickable}
+     ****************************************/
+
+    @Override
+    public void onRecyclerClicked(View v, int position) {
+        //snackbar をクリックで消す処置
+        if (snackbar != null) snackbar.dismiss();
+    }
+
+    @Override
+    public void onRecyclerButtonClicked(View v, int position) {
+    }
+
+    @Override
+    public boolean onRecyclerLongClicked(View v, final int position) {
+
+        final LinearLayout layout = (LinearLayout) findViewById(R.id.snackbar);
+        //snackbar の表示
+        snackbar = Snackbar.make(layout, "削除しますか", Snackbar.LENGTH_LONG)
+                .setAction("削除", new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        // something
+                        deleteMemo(position);
+                        mChatLikeListAdapter.notifyDataSetChanged();
+                    }
+                });
+
+        snackbar.show();
+        return true;
+    }
+
+
+}

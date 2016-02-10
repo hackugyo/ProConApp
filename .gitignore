@@ -1,3 +1,4 @@
+
 # Built application files
 *.apk
 *.ap_
@@ -30,3 +31,31 @@ proguard/
 
 # Android Studio captures folder
 captures/
+
+# OSX files
+.DS_Store
+# Windows thumbnail db
+Thumbs.db
+
+# built application files
+*.apk
+*.ap_
+
+# Android Studio
+.gradle
+/local.properties
+/.idea/libraries
+.DS_Store
+build
+*.iml
+.idea
+/captures
+
+# Realm
+*.realm
+*.realm.*
+
+# Release Building
+*.keystore
+release.gradle
+

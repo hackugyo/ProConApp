@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    tools:context=".MainActivity"
+    >
+    <android.support.design.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/main_content"
+        android:fitsSystemWindows="true"
+        android:layout_above="@+id/buttons_container"
+        >
+
+        <android.support.design.widget.AppBarLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:theme="@style/AppTheme.PopupOverlay"
+            >
+            <android.support.v7.widget.Toolbar
+                android:id="@+id/toolbar_actionbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                android:background="?attr/colorPrimary"
+                app:navigationIcon="@drawable/ic_launcher_default"
+                app:layout_scrollFlags="scroll|enterAlways"
+                app:popupTheme="@style/AppTheme.PopupOverlay"
+                />
+        </android.support.design.widget.AppBarLayout>
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/listView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_above="@+id/buttons_container"
+            android:paddingBottom="@dimen/activity_vertical_margin"
+            android:paddingTop="@dimen/activity_vertical_margin"
+            android:clipToPadding="false"
+            android:divider="#00000000"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior"
+            android:transcriptMode="alwaysScroll"
+            />
+
+    </android.support.design.widget.CoordinatorLayout>
+
+
+
+    <LinearLayout
+        android:id="@+id/buttons_container"
+
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/editTexts_container"
+        android:orientation="horizontal"
+        >
+        <Button
+            android:id="@+id/button_save_as_pro"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:gravity="left|center_vertical"
+            android:text="@string/save_as_pro" />
+        <Button
+            android:id="@+id/button_save_as_con"
+            android:theme="@style/ConsSaveButton"
+            style="@style/ConsSaveButton"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:gravity="right|center_vertical"
+            android:text="@string/save_as_con" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/editTexts_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/editText"
+        android:orientation="horizontal"
+        >
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="From:"
+            />
+        <EditText
+            android:id="@+id/editText_from"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:hint="@string/hint"
+            android:maxLines="1"
+            />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="pp:"
+            />
+        <EditText
+            android:id="@+id/editText_pages"
+            android:layout_width="44dp"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            />
+    </LinearLayout>
+
+    <EditText
+        android:id="@+id/editText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        android:hint="@string/hint" />
+
+    <LinearLayout
+        android:id="@+id/snackbar"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_above="@+id/buttons_container"
+        android:orientation="horizontal">
+
+    </LinearLayout>
+
+
+
+</RelativeLayout>
+

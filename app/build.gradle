@@ -1,0 +1,170 @@
+apply plugin: 'com.android.application'
+apply plugin: 'com.neenbedankt.android-apt'
+
+def gitSha = 'git rev-parse --short HEAD'.execute([], project.rootDir).text.trim()
+def proconConfig = project.rootProject.ext.config
+
+android {
+
+    compileSdkVersion 23
+    buildToolsVersion "23.0.2"
+
+    defaultConfig {
+        applicationId "jp.ne.hatena.hackugyo.procon.app"
+        minSdkVersion 16
+        targetSdkVersion 23
+        versionCode 1
+        versionName "1.0.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+        buildConfigField "String", "GIT_SHA", "\"${gitSha}\""
+        buildConfigField "boolean", "SSL_TRUST_ALL", "false"
+
+        buildConfigField("String", "BOOTSTRAP_DATA_TIMESTAMP", "\"${bootstrap_data_timestamp}\"")
+        buildConfigField("boolean", "IS_MOCK", "false")
+        buildConfigField("boolean", "IS_STAGING", "false")
+
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+
+    // siginingConfigs
+    // app/signingConfigs/release.gradle を設定してください
+    apply from: 'signingConfigs/release.gradle', to: android
+
+    lintOptions {
+        abortOnError false
+    }
+
+    buildTypes {
+        debug {
+            debuggable true
+            zipAlignEnabled true
+            minifyEnabled false
+            versionNameSuffix "-debug.${gitSha}"
+            signingConfig signingConfigs.debug
+            buildConfigField "boolean", "ENABLE_STETHO", "true"
+            ext.enableCrashlytics = false
+        }
+        release {
+            debuggable false
+            zipAlignEnabled true
+            minifyEnabled false
+//            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            buildConfigField "boolean", "ENABLE_STETHO", "false"
+            signingConfig signingConfigs.release
+        }
+    }
+
+    flavorDimensions  "global_environment"
+
+    productFlavors {
+        mock {
+            applicationId "jp.ne.hatena.hackugyo.procon.app.mock"
+            resValue "string", "app_name", "${proconConfig.appName.mock}"
+            buildConfigField "boolean", "SSL_TRUST_ALL", "true"
+            buildConfigField "boolean", "IS_MOCK", "true"
+
+            dimension "global_environment"
+        }
+        staging {
+            applicationId 'jp.ne.hatena.hackugyo.procon.app.staging'
+            resValue "string", "app_name", "${proconConfig.appName.staging}"
+            buildConfigField "boolean", "ENABLE_LVL", "false"
+            buildConfigField "boolean", "IS_STAGING", "true"
+
+            dimension "global_environment"
+        }
+        product {
+            buildConfigField "boolean", "ENABLE_LVL", "true"
+            resValue "string", "app_name", "${proconConfig.appName.production}"
+
+            dimension "global_environment"
+        }
+    }
+
+    packagingOptions {
+        exclude 'META-INF/DEPENDENCIES'
+        exclude 'LICENSE.txt'
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/NOTICE'
+        exclude 'META-INF/NOTICE.txt'
+        exclude 'META-INF/services/javax.annotation.processing.Processor'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
+    sourceSets { debug { java.srcDirs = ['src/debug/java', 'src/debug/java/'] } }
+}
+
+final SUPPORT_LIBRARY_VERSION = '23.1.1'
+final OKHTTP_VERSION = '2.6.0'
+final RETROFIT_VERSION = '2.0.0-beta2'
+final PARCELER_VERSION = '1.0.4'
+
+configurations.all {
+    resolutionStrategy {
+        force "com.android.support:support-annotations:$SUPPORT_LIBRARY_VERSION"
+    }
+}
+
+repositories {
+    maven {
+        url 'https://github.com/uPhyca/stetho-realm/raw/master/maven-repo'
+    }
+    jcenter()
+}
+
+dependencies {
+    // basic
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile "com.android.support:support-v4:$SUPPORT_LIBRARY_VERSION"
+    compile "com.android.support:appcompat-v7:$SUPPORT_LIBRARY_VERSION"
+    compile "com.android.support:design:$SUPPORT_LIBRARY_VERSION"
+    compile "com.android.support:support-annotations:$SUPPORT_LIBRARY_VERSION"
+    compile "com.android.support:recyclerview-v7:$SUPPORT_LIBRARY_VERSION"
+    compile "com.android.support:cardview-v7:$SUPPORT_LIBRARY_VERSION"
+
+    // Joda-Time. All of Calendar, GregorianCalendar and Time are not good parts.
+    compile 'net.danlew:android.joda:2.9.1'
+
+    // JSON utility library.
+    compile 'com.google.code.gson:gson:2.3'
+
+    // Netwoking libraries.
+    compile "com.squareup.okhttp:okhttp:$OKHTTP_VERSION"
+    compile "com.squareup.okhttp:logging-interceptor:$OKHTTP_VERSION"
+    compile "com.squareup.retrofit:retrofit:$RETROFIT_VERSION"
+    compile "com.squareup.retrofit:adapter-rxjava:$RETROFIT_VERSION"
+    compile "com.squareup.retrofit:converter-gson:$RETROFIT_VERSION"
+
+    // rx
+    compile 'io.reactivex:rxjava:1.0.15'
+    compile 'io.reactivex:rxandroid:1.0.1'
+
+    // event bus (for communication with services and activities)
+    compile 'de.greenrobot:eventbus:2.4.0'
+
+    // Database library.
+    compile 'io.realm:realm-android:0.87.0'
+    compile 'com.j256.ormlite:ormlite-android:4.48'
+
+
+    // Parcelablecompile
+    compile "org.parceler:parceler-api:$PARCELER_VERSION"
+    apt "org.parceler:parceler:$PARCELER_VERSION"
+
+    // for junit testing
+    testCompile 'junit:junit:4.12'
+    testCompile 'org.mockito:mockito-core:1.10.19'
+    // for android unit testing
+    androidTestCompile 'com.android.support.test:runner:0.4.1'
+    androidTestCompile 'com.android.support.test:rules:0.4.1'
+    // for ui testing
+    androidTestCompile 'com.android.support.test.espresso:espresso-core:2.2.1'
+    androidTestCompile 'com.android.support.test.espresso:espresso-intents:2.2.1'
+    androidTestCompile 'com.squareup.spoon:spoon-client:1.1.9'
+}

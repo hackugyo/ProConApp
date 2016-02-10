@@ -1,0 +1,54 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/app_primary</item>
+        <item name="colorPrimaryDark">@color/app_primary_dark</item>
+        <item name="colorAccent">@color/app_primary_accent</item>
+        <item name="android:textColorPrimary">@color/text_gray_700</item>
+        <item name="android:actionMenuTextAppearance">@style/CustomMenuTextAppearance</item>
+        <item name="actionMenuTextAppearance">@style/CustomMenuTextAppearance</item>
+    </style>
+
+    <style name="AppToolbarStyle" parent="@style/Widget.AppCompat.Toolbar">
+        <item name="android:paddingLeft">10dp</item>
+    </style>
+    <style name="AppTheme.NoActionBar" parent="AppTheme">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <!-- ボタンの色はandroid:なしのcolorButtonNormal -->
+        <item name="colorButtonNormal">@color/button_color</item>
+        <!--ボタンの文字の色はandroid:ありのtextAppearanceButtonの内部で指定 -->
+        <item name="android:textAppearanceButton">@style/TextAppearance.Button</item>
+    </style>
+    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.ActionBar">
+        <item name="toolbarStyle">@style/AppToolbarStyle</item>
+    </style>
+    <style name="AppTheme.AppBarOverlayWithoutIcon" parent="ThemeOverlay.AppCompat.ActionBar">
+    </style>
+    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light"/>
+
+    <style name="InitialFocusHolder">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">1dp</item>
+        <item name="android:focusable">true</item>
+        <item name="android:focusableInTouchMode">true</item>
+    </style>
+
+    <style name="CustomMenuTextAppearance" parent="@android:style/TextAppearance.Widget.IconMenu.Item">
+        <item name="android:textSize">18dp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextAppearance.Button" parent="Base.TextAppearance.AppCompat.Button">
+        <item name="android:textColor">@color/button_text_color</item>
+    </style>
+    <style name="ConsSaveButton">
+        <item name="android:textColor">@color/button_text_color</item>
+        <!-- colorButtonNormalでstate_enable = false 以外を色設定しても、Android 4.4以前では適用されない。 -->
+        <item name="colorButtonNormal">@color/button_color_cons</item>
+        <!-- backgroundTintは、Android 5.0以降では適用されない。 -->
+        <item name="backgroundTint">@color/button_color_cons</item>
+    </style>
+</resources>

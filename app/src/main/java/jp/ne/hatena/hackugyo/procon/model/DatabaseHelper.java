@@ -1,0 +1,83 @@
+package jp.ne.hatena.hackugyo.procon.model;
+
+import android.content.Context;
+import android.database.SQLException;
+import android.database.sqlite.SQLiteDatabase;
+import android.util.Log;
+
+import com.j256.ormlite.android.apptools.OpenHelperManager;
+import com.j256.ormlite.android.apptools.OrmLiteSqliteOpenHelper;
+import com.j256.ormlite.support.ConnectionSource;
+import com.j256.ormlite.table.TableUtils;
+
+import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ * Created by kwatanabe on 15/09/07.
+ */
+public class DatabaseHelper extends OrmLiteSqliteOpenHelper {
+    /**
+     * データベースのファイル名。SQLiteではデータベースは単一のファイルとして管理される。
+     */
+    private static final String DATABASE_NAME = "mapmemo.db";
+
+    /**
+     * データベースのヴァージョン。今後、テーブルの追加や変更をした際には、このヴァージョンを更新することで、アプリにDBが更新されたことを伝える。
+     */
+    public static final int DATABASE_VERSION = 1;
+
+    /**
+     * いま、データベースとアプリとの接続が何カ所で行われているかのカウンタ。
+     */
+    private static AtomicInteger sHelperReferenceCount = new AtomicInteger(0);
+
+    /**
+     * データベースとの接続を扱うヘルパー。アプリ内で単一のインスタンスになるよう、staticとする。
+     */
+    private static volatile DatabaseHelper sHelper;
+
+
+    public DatabaseHelper(Context context) {
+        super(context, DATABASE_NAME, null, DATABASE_VERSION);
+    }
+
+    @Override
+    public void onCreate(SQLiteDatabase sqLiteDatabase, ConnectionSource connectionSource) {
+        try {
+            // エンティティを指定してCREATE TABLE（テーブルを作成）します
+            TableUtils.createTable(connectionSource, Memo.class);
+        } catch (java.sql.SQLException e) {
+            Log.e("MapMemo", "データベースを作成できませんでした", e);
+        }
+    }
+
+    @Override
+    public void onUpgrade(SQLiteDatabase database, ConnectionSource connectionSource, int oldVersion, int newVersion) {
+        // DBヴァージョンが上がった際の、DBのアップグレード処理（今回は割愛）
+    }
+
+    public static synchronized DatabaseHelper getHelper(Context context) {
+        if (sHelperReferenceCount.getAndIncrement() == 0) {
+            sHelper = OpenHelperManager.getHelper(context, DatabaseHelper.class);
+        }
+        return sHelper;
+    }
+
+    public static synchronized void releaseHelper() {
+        if (sHelperReferenceCount.decrementAndGet() <= 0) {
+            sHelperReferenceCount.set(0);
+            OpenHelperManager.releaseHelper();
+        }
+    }
+
+    public static synchronized void destroyHelper() {
+        OpenHelperManager.releaseHelper();
+        sHelperReferenceCount.set(0);
+    }
+
+    @Override
+    public void close() {
+        super.close();
+    }
+
+}

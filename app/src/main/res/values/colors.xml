@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="app_primary">#FFDDDDDD</color>
+    <color name="app_primary_dark">#FF999999</color>
+    <color name="theme_primary">@color/app_primary_accent</color>
+    <color name="app_primary_accent">#FFFF4081</color>
+
+    <color name="white">#FFFF</color>
+    <color name="background_holo_light">#FFEDEDED</color>
+    <color name="red_500">#FFF44336</color>
+    <color name="text_gray_700">#FF616161</color>
+
+    <color name="black">#000000</color>
+    <color name="transparent_black">#1E000000</color>
+
+    <color name="gray_200">#FFEEEEEE</color>
+    <color name="gray_200_highlight">#A0EEEEEE</color>
+
+    <color name="blue_a400">#FF448AFF</color>
+    <color name="blue_200">#FF90CAF9</color>
+    <color name="orange_600">#FFFB8C00</color>
+    <color name="orange_900">#FFE65100</color>
+
+
+    <color name="color1_violet_red">#FFF53D9D</color>
+    <color name="color2_lemon">#FFFCEB14</color>
+    <color name="color3_science_blue">#FF0862C4</color>
+    <color name="color4_conifer">#FF79DC48</color>
+    <color name="color5_purple_heart">#FF912EAC</color>
+    <color name="color6_ecstasy">#FFFB6F19</color>
+    <color name="color7_brown_rust">#FFA85C3E</color>
+    <color name="color8_bright_turquoise">#FF1BD4F9</color>
+    <color name="color9_green_haze">#FF00984B</color>
+</resources>
