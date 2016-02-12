@@ -87,7 +87,7 @@
             android:layout_height="wrap_content"
             android:text="From:"
             />
-        <EditText
+        <AutoCompleteTextView
             android:id="@+id/editText_from"
             android:layout_width="0dp"
             android:layout_weight="1"

@@ -15,15 +15,15 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ListAdapter;
 import android.widget.Toast;
 
-import junit.framework.Assert;
-
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 
@@ -31,6 +31,8 @@ import jp.ne.hatena.hackugyo.procon.adapter.ChatLikeListAdapter;
 import jp.ne.hatena.hackugyo.procon.io.ImprovedTextCrawler;
 import jp.ne.hatena.hackugyo.procon.model.ChatTheme;
 import jp.ne.hatena.hackugyo.procon.model.ChatThemeRepository;
+import jp.ne.hatena.hackugyo.procon.model.CitationResource;
+import jp.ne.hatena.hackugyo.procon.model.CitationResourceRepository;
 import jp.ne.hatena.hackugyo.procon.model.Memo;
 import jp.ne.hatena.hackugyo.procon.model.MemoRepository;
 import jp.ne.hatena.hackugyo.procon.ui.RecyclerClickable;
@@ -39,6 +41,8 @@ import jp.ne.hatena.hackugyo.procon.util.FragmentUtils;
 import jp.ne.hatena.hackugyo.procon.util.LogUtils;
 import jp.ne.hatena.hackugyo.procon.util.StringUtils;
 import jp.ne.hatena.hackugyo.procon.util.UrlUtils;
+import rx.Observable;
+import rx.functions.Func1;
 
 public class MainActivity extends AppCompatActivity implements RecyclerClickable {
 
@@ -49,9 +53,12 @@ public class MainActivity extends AppCompatActivity implements RecyclerClickable
     Snackbar snackbar;
     private EditText mContentEditText;
     private EditText mPagesEditText;
-    private EditText mResourceEditText;
+    private AutoCompleteTextView mResourceEditText;
     private MainActivityHelper mainActivityHelper;
     private ChatTheme chatTheme;
+    private ArrayAdapter<String> mCitationResourceSuggestionAdapter;
+    private final List<String> citationResouces = new ArrayList<>();
+    private CitationResourceRepository citationResourceRepository;
 
 
     @Override
@@ -65,9 +72,11 @@ public class MainActivity extends AppCompatActivity implements RecyclerClickable
             setSupportActionBar(toolbar);
         }
         memoRepository = new MemoRepository(this);
+        citationResourceRepository = new CitationResourceRepository(this);
 
         mContentEditText = (EditText) findViewById(R.id.editText);
-        mResourceEditText = (EditText) findViewById(R.id.editText_from);
+        mResourceEditText = (AutoCompleteTextView) findViewById(R.id.editText_from);
+        mResourceEditText.setAdapter(getCitationResourceSuggestionAdapter());
         mPagesEditText = (EditText) findViewById(R.id.editText_pages);
         setupAddAsProButton();
         setupAddAsConButton();
@@ -233,6 +242,7 @@ public class MainActivity extends AppCompatActivity implements RecyclerClickable
         memo.setChatTheme(chatTheme);
         if(memoRepository.save(memo)) {
             mMemos.add(memo);
+            renewCitationResources();
         }
     }
 
@@ -325,6 +335,45 @@ public class MainActivity extends AppCompatActivity implements RecyclerClickable
             Toast.makeText(this, "ブラウザアプリがインストールされていません。", Toast.LENGTH_LONG).show();
             LogUtils.e("browser activity cannot found.");
         }
+    }
+
+    /***********************************************
+     * ブラウザ起動*
+     ***********************************************/
+
+
+
+    public ArrayAdapter<String> getCitationResourceSuggestionAdapter() {
+        if (mCitationResourceSuggestionAdapter == null) {
+            renewCitationResources();
+            mCitationResourceSuggestionAdapter = new ArrayAdapter<String>(
+                    this,
+                    android.R.layout.simple_dropdown_item_1line,
+                    citationResouces
+            );
+        }
+        return mCitationResourceSuggestionAdapter;
+    }
+
+    public void renewCitationResources() {
+        citationResouces.clear();
+        citationResouces.addAll(
+                Observable
+                        .from(citationResourceRepository.findAll())
+                        .map(new Func1<CitationResource, String>() {
+                            @Override
+                            public String call(CitationResource citationResource) {
+                                return citationResource.getName();
+                            }
+                        })
+                        .filter(new Func1<String, Boolean>() {
+                            @Override
+                            public Boolean call(String s) {
+                                return !UrlUtils.isValidUrl(s);
+                            }
+                        })
+                        .toList().toBlocking().single());
+
     }
 
 }

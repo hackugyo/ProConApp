@@ -25,4 +25,8 @@ public class CitationResource {
     public CitationResource(String name) {
         this.name = name;
     }
+
+    public String getName() {
+        return name;
+    }
 }
