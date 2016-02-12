@@ -12,6 +12,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import jp.ne.hatena.hackugyo.procon.io.ImprovedTextCrawler;
@@ -43,24 +44,38 @@ public class MainActivityHelper {
     }
 
     void loadPreview() {
-        Observable.from(ArrayUtils.reverse(memos))
+        List<Memo> toBeLoaded = Observable.from(ArrayUtils.reverse(memos))
+                .observeOn(Schedulers.io())
                 .filter(new Func1<Memo, Boolean>() {
                     @Override
                     public Boolean call(Memo memo) {
                         return memo.isForUrl() && StringUtils.isEmpty(memo.getMemo());
                     }
                 })
-                .subscribeOn(AndroidSchedulers.mainThread())
+                .toList()
+                .toBlocking()
+                .single();
+        List<Observable<Pair<Memo, String>>> observables = new ArrayList<>();
+        for (Memo memo : toBeLoaded) {
+            observables.add(
+                    Observable.just(memo)
+                            .observeOn(Schedulers.io())
+                            .map(new Func1<Memo, Pair<Memo, String>>() {
+                                @Override
+                                public Pair<Memo, String> call(Memo memo) {
+                                    String url = memo.getCitationResource();
+                                    SourceContent sourceContent = textCrawler.extractFrom(url, TextCrawler.NONE);
+                                    String previewText = preview(url, sourceContent);
+                                    return Pair.create(memo, previewText);
+                                }
+                            })
+            );
+        }
+
+        Observable parallel = Observable.merge(observables);
+        parallel
                 .observeOn(Schedulers.io())
-                .map(new Func1<Memo, Pair<Memo, String>>() {
-                    @Override
-                    public Pair<Memo, String> call(Memo memo) {
-                        String url = memo.getCitationResource();
-                        SourceContent sourceContent = textCrawler.extractFrom(url, TextCrawler.NONE);
-                        String previewText = preview(url, sourceContent);
-                        return Pair.create(memo, previewText);
-                    }
-                })
+                .subscribeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Action1<Pair<Memo, String>>() {
                     @Override
                     public void call(Pair<Memo, String> memoStringPair) {
@@ -99,7 +114,7 @@ public class MainActivityHelper {
         } else {
             String result;
             if (UrlUtils.isTwitterUrl(originalUrl)) {
-                result = convetHtml(sourceContent.getHtmlCode());
+                result = convetHtml(sourceContent.getHtmlCode()).getDescription();
             } else {
                 result = sourceContent.getDescription();
             }
@@ -107,41 +122,59 @@ public class MainActivityHelper {
         }
     }
 
-    private String convetHtml(String html) {
+    private SourceContent convetHtml(String html) {
+
+        SourceContent sourceContent = new SourceContent();
         Document document = Jsoup.parse(html);
+
+        // 画像
+        List<String> imageUrlList =
+                Observable
+                        .from(document.getElementsByClass("card-photo"))
+                        .map(new Func1<Element, String>() {
+
+                            @Override
+                            public String call(Element element) {
+                                return element.getElementsByTag("img").first().attr("src");
+                            }
+                        })
+                        .toList()
+                        .toBlocking()
+                        .single();
+        // TODO 20160212 Twitterの複数URLには未対応
+
+        sourceContent.setImages(imageUrlList);
+
         // 本文
         Elements select = document.getElementsByClass("dir-ltr");
-        for (Element element : select) {
-            Elements children = element.children();
-            if (children.size() == 0) {
-                return element.ownText();
-            } else {
-                List<String> single =
-                        Observable.just(element.ownText())
-                                .concatWith(
-                                        Observable.from(children)
-                                                .map(new Func1<Element, String>() {
-                                                    @Override
-                                                    public String call(Element child) {
-                                                        if (child.attr("data-query-source", "hashtag_click") != null) {
-                                                            return child.ownText(); // ハッシュタグ
-                                                        }
 
-                                                        String url = child.attr("data-expanded-url");
-                                                        if (StringUtils.isEmpty(url)) {
-                                                            url = child.attr("data-url");
-                                                        }
-                                                        return url;
+        if (select.size() != 0) {
+
+            List<String> single =
+                    Observable.just(select.first().ownText())
+                            .concatWith(
+                                    Observable.from(select.first().children())
+                                            .map(new Func1<Element, String>() {
+                                                @Override
+                                                public String call(Element child) {
+                                                    if (child.attr("data-query-source", "hashtag_click") != null) {
+                                                        return child.ownText(); // ハッシュタグ
                                                     }
-                                                }))
-                                .toList()
-                                .toBlocking()
-                                .single();
-                return StringUtils.join(single, StringUtils.getCRLF());
-            }
+
+                                                    String url = child.attr("data-expanded-url");
+                                                    if (StringUtils.isEmpty(url)) {
+                                                        url = child.attr("data-url");
+                                                    }
+                                                    return url;
+                                                }
+                                            }))
+                            .toList()
+                            .toBlocking()
+                            .single();
+            sourceContent.setDescription(StringUtils.join(single, StringUtils.getCRLF()));
         }
-
-        return null;
-
+        return sourceContent;
     }
+
+
 }
