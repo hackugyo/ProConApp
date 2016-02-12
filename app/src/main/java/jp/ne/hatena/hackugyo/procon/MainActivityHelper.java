@@ -7,10 +7,16 @@ import android.util.Pair;
 import com.leocardz.link.preview.library.SourceContent;
 import com.leocardz.link.preview.library.TextCrawler;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
 import java.util.List;
 
 import jp.ne.hatena.hackugyo.procon.io.ImprovedTextCrawler;
 import jp.ne.hatena.hackugyo.procon.model.Memo;
+import jp.ne.hatena.hackugyo.procon.util.ArrayUtils;
 import jp.ne.hatena.hackugyo.procon.util.StringUtils;
 import jp.ne.hatena.hackugyo.procon.util.UrlUtils;
 import rx.Observable;
@@ -37,7 +43,7 @@ public class MainActivityHelper {
     }
 
     void loadPreview() {
-        Observable.from(memos)
+        Observable.from(ArrayUtils.reverse(memos))
                 .filter(new Func1<Memo, Boolean>() {
                     @Override
                     public Boolean call(Memo memo) {
@@ -93,11 +99,49 @@ public class MainActivityHelper {
         } else {
             String result;
             if (UrlUtils.isTwitterUrl(originalUrl)) {
-                result = sourceContent.getHtmlCode();
+                result = convetHtml(sourceContent.getHtmlCode());
             } else {
                 result = sourceContent.getDescription();
             }
             return result;
         }
+    }
+
+    private String convetHtml(String html) {
+        Document document = Jsoup.parse(html);
+        // 本文
+        Elements select = document.getElementsByClass("dir-ltr");
+        for (Element element : select) {
+            Elements children = element.children();
+            if (children.size() == 0) {
+                return element.ownText();
+            } else {
+                List<String> single =
+                        Observable.just(element.ownText())
+                                .concatWith(
+                                        Observable.from(children)
+                                                .map(new Func1<Element, String>() {
+                                                    @Override
+                                                    public String call(Element child) {
+                                                        if (child.attr("data-query-source", "hashtag_click") != null) {
+                                                            return child.ownText(); // ハッシュタグ
+                                                        }
+
+                                                        String url = child.attr("data-expanded-url");
+                                                        if (StringUtils.isEmpty(url)) {
+                                                            url = child.attr("data-url");
+                                                        }
+                                                        return url;
+                                                    }
+                                                }))
+                                .toList()
+                                .toBlocking()
+                                .single();
+                return StringUtils.join(single, StringUtils.getCRLF());
+            }
+        }
+
+        return null;
+
     }
 }

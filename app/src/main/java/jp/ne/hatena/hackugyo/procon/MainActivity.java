@@ -36,7 +36,7 @@ import jp.ne.hatena.hackugyo.procon.util.UrlUtils;
 
 public class MainActivity extends AppCompatActivity implements RecyclerClickable {
 
-    ArrayList<Memo> mMemos = new ArrayList<Memo>();
+    final ArrayList<Memo> mMemos = new ArrayList<Memo>();
     RecyclerView mListView;
     ChatLikeListAdapter mChatLikeListAdapter;
     private MemoRepository memoRepository;
@@ -202,6 +202,7 @@ public class MainActivity extends AppCompatActivity implements RecyclerClickable
         List<Memo> memos = memoRepository.findAll();
         mMemos.addAll(memos);
         mChatLikeListAdapter.notifyDataSetChanged();
+        mListView.smoothScrollToPosition(mChatLikeListAdapter.getItemCount() - 1);
     }
 
     private void insertMemo(String text, Calendar cal, String resource, String pages, boolean isPro) {

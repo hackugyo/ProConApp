@@ -62,6 +62,7 @@
                 android:layout_width="240dp"
                 android:layout_height="wrap_content"
                 android:textColor="@android:color/black"
+                android:autoLink="web"
                 android:maxWidth="240dp" />
 
         </LinearLayout>

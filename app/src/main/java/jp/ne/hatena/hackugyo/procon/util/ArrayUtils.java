@@ -210,4 +210,9 @@ public class ArrayUtils {
         Collections.reverse(result);
         return result;
     }
+
+    public static String[] asArray(List<String> list) {
+        String[] ts = new String[list.size()];
+        return list.toArray(ts);
+    }
 }
