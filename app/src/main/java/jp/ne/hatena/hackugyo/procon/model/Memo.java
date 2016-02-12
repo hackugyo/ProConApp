@@ -7,7 +7,12 @@ import com.j256.ormlite.table.DatabaseTable;
 import com.leocardz.link.preview.library.SourceContent;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
+
+import jp.ne.hatena.hackugyo.procon.util.ArrayUtils;
+import jp.ne.hatena.hackugyo.procon.util.StringUtils;
 
 @DatabaseTable(tableName = "Memo")
 public class Memo {
@@ -26,14 +31,14 @@ public class Memo {
     boolean isPro;
 
     @DatabaseField(useGetSet = true)
-    private String citationResource;
-    @DatabaseField
-    boolean isPages;
-    @DatabaseField(useGetSet = true)
     String pages;
+
+    @DatabaseField(foreign = true, foreignAutoRefresh = true)
+    private ChatTheme chatTheme;
 
     private boolean isLoaded = false;
     private SourceContent mSourceContent;
+    private List<CitationResource> citationResources;
 
     public Memo() { // no-arg constructor
         // Empty
@@ -46,7 +51,6 @@ public class Memo {
         if (date != null) this.date = date;
         dateInMillis = (date == null ? 0L : this.date.getTimeInMillis());
         this.isPro = isPro;
-        isPages = false;
     }
 
     public void setMemo(String memo) {
@@ -82,8 +86,8 @@ public class Memo {
         return isPro;
     }
 
-    public boolean isPages() {
-        return isPages;
+    public boolean hasManyPages() {
+        return (pages != null && pages.contains("-"));
     }
 
     public String getPages() {
@@ -91,20 +95,16 @@ public class Memo {
     }
 
     public void setPages(String pages) {
-        isPages = (pages != null && pages.contains("-"));
         this.pages = pages;
     }
 
-    public void setCitationResource(String citationResource) {
-        this.citationResource = citationResource;
-    }
 
     public String getCitationResource() {
-        return citationResource;
+        return ArrayUtils.any(citationResources) ? citationResources.get(0).name : "";
     }
 
     public boolean isForUrl() {
-        return Patterns.WEB_URL.matcher(this.citationResource).matches();
+        return Patterns.WEB_URL.matcher(getCitationResource()).matches();
     }
 
     public void setLoaded(boolean isLoaded) {
@@ -121,5 +121,27 @@ public class Memo {
 
     public void setSourceContent(SourceContent sourceContent) {
         mSourceContent = sourceContent;
+    }
+
+    public ChatTheme getChatTheme() {
+        return chatTheme;
+    }
+
+    public void setChatTheme(ChatTheme chatTheme) {
+        this.chatTheme = chatTheme;
+    }
+
+    public void setCitationResources(List<CitationResource> citationResources) {
+        this.citationResources = citationResources;
+    }
+
+    public List<CitationResource> getCitationResources() {
+        return citationResources;
+    }
+
+    public void addCitationResource(String resource) {
+        if (StringUtils.isEmpty(resource)) return;
+        if (this.citationResources == null) this.citationResources = new ArrayList<>();
+        this.citationResources.add(new CitationResource(resource));
     }
 }

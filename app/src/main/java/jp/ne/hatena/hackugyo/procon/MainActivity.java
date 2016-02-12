@@ -20,15 +20,21 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
+import junit.framework.Assert;
+
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 
 import jp.ne.hatena.hackugyo.procon.adapter.ChatLikeListAdapter;
 import jp.ne.hatena.hackugyo.procon.io.ImprovedTextCrawler;
+import jp.ne.hatena.hackugyo.procon.model.ChatTheme;
+import jp.ne.hatena.hackugyo.procon.model.ChatThemeRepository;
 import jp.ne.hatena.hackugyo.procon.model.Memo;
 import jp.ne.hatena.hackugyo.procon.model.MemoRepository;
 import jp.ne.hatena.hackugyo.procon.ui.RecyclerClickable;
+import jp.ne.hatena.hackugyo.procon.util.ArrayUtils;
 import jp.ne.hatena.hackugyo.procon.util.FragmentUtils;
 import jp.ne.hatena.hackugyo.procon.util.LogUtils;
 import jp.ne.hatena.hackugyo.procon.util.StringUtils;
@@ -45,6 +51,7 @@ public class MainActivity extends AppCompatActivity implements RecyclerClickable
     private EditText mPagesEditText;
     private EditText mResourceEditText;
     private MainActivityHelper mainActivityHelper;
+    private ChatTheme chatTheme;
 
 
     @Override
@@ -73,7 +80,19 @@ public class MainActivity extends AppCompatActivity implements RecyclerClickable
         mListView.setLayoutManager(llm);
 
         //memo の表示
-        loadMemo();
+        {
+            ChatThemeRepository chatThemeRepository = new ChatThemeRepository(this);
+            List<ChatTheme> all = chatThemeRepository.findAll();
+            if (all.size() == 0) {
+                chatTheme = new ChatTheme("最初の議題");
+                chatThemeRepository.save(chatTheme);
+            } else {
+                chatTheme = all.get(0);
+            }
+            chatThemeRepository.onPause();
+        }
+        getSupportActionBar().setTitle(chatTheme.getTitle());
+        loadMemo(chatTheme);
         mainActivityHelper = new MainActivityHelper(new ImprovedTextCrawler(), mChatLikeListAdapter, mMemos);
     }
 
@@ -197,9 +216,10 @@ public class MainActivity extends AppCompatActivity implements RecyclerClickable
     }
 
 
-    private void loadMemo() {
+    private void loadMemo(ChatTheme chatTheme) {
         //database からすべてを呼び出し、メモに追加する
-        List<Memo> memos = memoRepository.findAll();
+        List<Memo> memos = memoRepository.loadFromChatTheme(chatTheme);
+        if (!ArrayUtils.any(memos)) return;
         mMemos.addAll(memos);
         mChatLikeListAdapter.notifyDataSetChanged();
         mListView.smoothScrollToPosition(mChatLikeListAdapter.getItemCount() - 1);
@@ -208,8 +228,9 @@ public class MainActivity extends AppCompatActivity implements RecyclerClickable
     private void insertMemo(String text, Calendar cal, String resource, String pages, boolean isPro) {
         //memo を追加し、セーブする
         Memo memo = new Memo(cal, text, isPro);
-        memo.setCitationResource(resource);
+        memo.addCitationResource(resource);
         memo.setPages(pages);
+        memo.setChatTheme(chatTheme);
         if(memoRepository.save(memo)) {
             mMemos.add(memo);
         }

@@ -76,7 +76,7 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
             } else {
                 holder.pages.setVisibility(View.VISIBLE);
                 holder.pagesMark.setVisibility(View.VISIBLE);
-                holder.pagesMark.setText(memo.isPages() ? "pp." : "p.");
+                holder.pagesMark.setText(memo.hasManyPages() ? "pp." : "p.");
             }
         }
         holder.itemView.setOnClickListener(new View.OnClickListener() {

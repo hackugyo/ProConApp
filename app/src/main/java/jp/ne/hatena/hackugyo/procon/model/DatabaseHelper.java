@@ -45,7 +45,10 @@ public class DatabaseHelper extends OrmLiteSqliteOpenHelper {
     public void onCreate(SQLiteDatabase sqLiteDatabase, ConnectionSource connectionSource) {
         try {
             // エンティティを指定してCREATE TABLE（テーブルを作成）します
+            TableUtils.createTable(connectionSource, ChatTheme.class);
             TableUtils.createTable(connectionSource, Memo.class);
+            TableUtils.createTable(connectionSource, CitationResource.class);
+            TableUtils.createTable(connectionSource, MemoCitationResource.class); // メモ n : n 引用元文献 を実現する中間テーブル
         } catch (java.sql.SQLException e) {
             LogUtils.e("データベースを作成できませんでした", e);
         }

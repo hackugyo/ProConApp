@@ -13,6 +13,7 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.List;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
@@ -23,6 +24,8 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
+import jp.ne.hatena.hackugyo.procon.model.ChatTheme;
+import jp.ne.hatena.hackugyo.procon.model.ChatThemeRepository;
 import retrofit.GsonConverterFactory;
 import retrofit.Retrofit;
 
@@ -49,6 +52,14 @@ public class AppApplication extends Application {
         Picasso picasso = new Picasso.Builder(this)
                 .downloader(new OkHttpDownloader(mOkHttpClient))
                 .build();
+
+
+        ChatThemeRepository chatThemeRepository = new ChatThemeRepository(this);
+        List<ChatTheme> all = chatThemeRepository.findAll();
+        if (all.size() == 0) {
+            chatThemeRepository.save(new ChatTheme("最初の議題"));
+        }
+        chatThemeRepository.onPause(); // 停止
     }
 
     public static Object getRefWatcher(Context context) {
