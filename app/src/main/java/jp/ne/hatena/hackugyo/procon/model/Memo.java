@@ -31,6 +31,8 @@ public class Memo {
     @DatabaseField(useGetSet = true)
     String pages;
 
+    private boolean isLoaded = false;
+
     public Memo() { // no-arg constructor
         // Empty
     }
@@ -101,5 +103,13 @@ public class Memo {
 
     public boolean isForUrl() {
         return Patterns.WEB_URL.matcher(this.citationResource).matches();
+    }
+
+    public void setLoaded(boolean isLoaded) {
+        this.isLoaded = isLoaded;
+    }
+
+    public boolean isLoaded() {
+        return isLoaded;
     }
 }

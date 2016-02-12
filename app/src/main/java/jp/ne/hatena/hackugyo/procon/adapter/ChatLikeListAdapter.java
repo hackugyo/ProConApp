@@ -10,8 +10,6 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.leocardz.link.preview.library.LinkPreviewCallback;
-import com.leocardz.link.preview.library.SourceContent;
 import com.leocardz.link.preview.library.TextCrawler;
 
 import java.util.List;
@@ -19,9 +17,7 @@ import java.util.List;
 import jp.ne.hatena.hackugyo.procon.R;
 import jp.ne.hatena.hackugyo.procon.model.Memo;
 import jp.ne.hatena.hackugyo.procon.ui.RecyclerClickable;
-import jp.ne.hatena.hackugyo.procon.util.LogUtils;
 import jp.ne.hatena.hackugyo.procon.util.StringUtils;
-import jp.ne.hatena.hackugyo.procon.util.UrlUtils;
 
 /**
  * Created by kwatanabe on 15/08/27.
@@ -60,17 +56,8 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
         boolean isPro = memo.isPro();
         //to simulate whether it me or other sender
         setAlignment(holder, isPro);
-        holder.numberOfTheMessage.setText("#" + memo.getId());
-        // 状態判定
-        if (holder.getItemViewType() == VIEW_TYPE_URL_PREVIEW) {
-            if (StringUtils.isEmpty(memo.getMemo())) {
-                ((UrlPreviewViewHolder) holder).previewAsync(memo.getCitationResource(), textCrawler, position);
-            } else {
-                holder.txtMessage.setText(memo.getMemo());
-            }
-        } else {
-            holder.txtMessage.setText(memo.getMemo());
-        }
+        holder.numberOfTheMessage.setText("#" + memo.getId()); // TODO 20160212 getIdInTheme
+        holder.setMemoText(memo);
         holder.txtInfo.setText(memo.getDate());
         if (StringUtils.isEmpty(memo.getCitationResource())) {
             holder.citationResourceContainer.setVisibility(View.GONE);
@@ -196,6 +183,10 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
             pages = (TextView) v.findViewById(R.id.message_source_pages);
             citationResourceContainer = (LinearLayout) v.findViewById(R.id.citation_resource_container);
         }
+
+        public void setMemoText(Memo memo) {
+            txtMessage.setText(memo.getMemo());
+        }
     }
 
 
@@ -205,45 +196,13 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
             super(v);
         }
 
-
-
-        public void previewAsync(final String url, TextCrawler textCrawler, final int position) {
-            txtMessage.setText("読込中");
-            textCrawler.makePreview(
-                    new LinkPreviewCallback() {
-                        @Override
-                        public void onPre() {
-
-                        }
-
-                        @Override
-                        public void onPos(SourceContent sourceContent, boolean isNull) {
-                            String content = preview(url, sourceContent, isNull);
-                            LogUtils.i("position " + position + ": " + content + " for " + url);
-                            mMemos.get(position).setMemo(content);
-                        }
-                    },
-                    url, TextCrawler.NONE);
-        }
-
-        private String preview(String originalUrl, SourceContent sourceContent, boolean isNull) {
-
-            if (false) { //!StringUtils.isSame(originalUrl, sourceContent.getFinalUrl())) {
-                LogUtils.i("ignore " + originalUrl + " -> " + sourceContent.getFinalUrl());
-                return null;
-            } else if (isNull || sourceContent.getFinalUrl().equals("")) {
-                // 失敗
-                txtMessage.setText("読込失敗");
-                return null;
+        @Override
+        public void setMemoText(Memo memo) {
+            String memoText = memo.getMemo();
+            if (StringUtils.isEmpty(memoText)) {
+                txtMessage.setText(memo.isLoaded() ? "読込失敗" : "読込中");
             } else {
-                String result;
-                if (UrlUtils.isTwitterUrl(originalUrl)) {
-                    result = sourceContent.getHtmlCode();
-                } else {
-                    result = sourceContent.getDescription();
-                }
-                txtMessage.setText(result);
-                return result;
+                txtMessage.setText(memoText);
             }
         }
     }

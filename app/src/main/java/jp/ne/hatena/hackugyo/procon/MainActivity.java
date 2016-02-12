@@ -25,6 +25,7 @@ import java.util.Calendar;
 import java.util.List;
 
 import jp.ne.hatena.hackugyo.procon.adapter.ChatLikeListAdapter;
+import jp.ne.hatena.hackugyo.procon.io.ImprovedTextCrawler;
 import jp.ne.hatena.hackugyo.procon.model.Memo;
 import jp.ne.hatena.hackugyo.procon.model.MemoRepository;
 import jp.ne.hatena.hackugyo.procon.ui.RecyclerClickable;
@@ -43,6 +44,7 @@ public class MainActivity extends AppCompatActivity implements RecyclerClickable
     private EditText mContentEditText;
     private EditText mPagesEditText;
     private EditText mResourceEditText;
+    private MainActivityHelper mainActivityHelper;
 
 
     @Override
@@ -70,9 +72,9 @@ public class MainActivity extends AppCompatActivity implements RecyclerClickable
         llm.setOrientation(LinearLayoutManager.VERTICAL);
         mListView.setLayoutManager(llm);
 
-
         //memo の表示
         loadMemo();
+        mainActivityHelper = new MainActivityHelper(new ImprovedTextCrawler(), mChatLikeListAdapter, mMemos);
     }
 
     @Override
@@ -100,6 +102,7 @@ public class MainActivity extends AppCompatActivity implements RecyclerClickable
     protected void onResume() {
         super.onResume();
         memoRepository.onResume(this);
+        mainActivityHelper.loadPreview();
     }
 
     @Override
@@ -143,6 +146,9 @@ public class MainActivity extends AppCompatActivity implements RecyclerClickable
                     mResourceEditText.getEditableText().clear();
                     mPagesEditText.getEditableText().clear();
 
+                    mListView.smoothScrollToPosition(mChatLikeListAdapter.getItemCount() - 1);
+
+                    mainActivityHelper.loadPreview();
                 }
 
             }
@@ -176,6 +182,10 @@ public class MainActivity extends AppCompatActivity implements RecyclerClickable
                     mContentEditText.getEditableText().clear();
                     mResourceEditText.getEditableText().clear();
                     mPagesEditText.getEditableText().clear();
+
+                    mListView.smoothScrollToPosition(mChatLikeListAdapter.getItemCount() - 1);
+
+                    mainActivityHelper.loadPreview();
 
                 }
 
