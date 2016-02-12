@@ -55,18 +55,22 @@ public class MainActivityHelper {
                 .toList()
                 .toBlocking()
                 .single();
-        List<Observable<Pair<Memo, String>>> observables = new ArrayList<>();
+        List<Observable<Pair<Memo, SourceContent>>> observables = new ArrayList<>();
         for (Memo memo : toBeLoaded) {
             observables.add(
                     Observable.just(memo)
                             .observeOn(Schedulers.io())
-                            .map(new Func1<Memo, Pair<Memo, String>>() {
+                            .map(new Func1<Memo, Pair<Memo, SourceContent>>() {
                                 @Override
-                                public Pair<Memo, String> call(Memo memo) {
+                                public Pair<Memo, SourceContent> call(Memo memo) {
                                     String url = memo.getCitationResource();
                                     SourceContent sourceContent = textCrawler.extractFrom(url, TextCrawler.NONE);
-                                    String previewText = preview(url, sourceContent);
-                                    return Pair.create(memo, previewText);
+                                    String finalUrl = sourceContent.getFinalUrl();
+                                    if (UrlUtils.isTwitterUrl(finalUrl)) { // 特定URLポスト以外のTwitterドメインには未対応
+                                        sourceContent = convertHtml(sourceContent.getHtmlCode());
+                                        sourceContent.setFinalUrl(finalUrl);
+                                    }
+                                    return Pair.create(memo, sourceContent);
                                 }
                             })
             );
@@ -76,11 +80,12 @@ public class MainActivityHelper {
         parallel
                 .observeOn(Schedulers.io())
                 .subscribeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<Pair<Memo, String>>() {
+                .subscribe(new Action1<Pair<Memo, SourceContent>>() {
                     @Override
-                    public void call(Pair<Memo, String> memoStringPair) {
-                        final long id = memoStringPair.first.getId();
-                        final String content = memoStringPair.second;
+                    public void call(Pair<Memo, SourceContent> pair) {
+                        final long id = pair.first.getId();
+                        SourceContent sourceContent = pair.second;
+                        final String content = previewText(sourceContent);
                         Memo memo = Observable.from(memos)
                                 .first(new Func1<Memo, Boolean>() {
                                     @Override
@@ -92,6 +97,7 @@ public class MainActivityHelper {
                                 .single();
                         if (memo != null) {
                             memo.setMemo(content);
+                            memo.setSourceContent(sourceContent);
                             memo.setLoaded(true);
                             final int i = memos.indexOf(memo);
                             handler.post(new Runnable() {
@@ -106,23 +112,17 @@ public class MainActivityHelper {
                 });
     }
 
-    private String preview(String originalUrl, SourceContent sourceContent) {
+    private String previewText(SourceContent sourceContent) {
 
         if (sourceContent.getFinalUrl().equals("")) {
             // 失敗
             return null;
         } else {
-            String result;
-            if (UrlUtils.isTwitterUrl(originalUrl)) {
-                result = convetHtml(sourceContent.getHtmlCode()).getDescription();
-            } else {
-                result = sourceContent.getDescription();
-            }
-            return result;
+            return sourceContent.getDescription();
         }
     }
 
-    private SourceContent convetHtml(String html) {
+    private SourceContent convertHtml(String html) {
 
         SourceContent sourceContent = new SourceContent();
         Document document = Jsoup.parse(html);

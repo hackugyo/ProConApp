@@ -64,12 +64,31 @@
                 android:textColor="@android:color/black"
                 android:autoLink="web"
                 android:maxWidth="240dp" />
-
+            <ImageView
+                android:id="@+id/image"
+                android:layout_width="match_parent"
+                android:layout_height="200dp"/>
         </LinearLayout>
-
         <include
             layout="@layout/layout_citation_resource"
             android:id="@+id/citation_resource_container"
             />
+        <include
+            layout="@layout/layout_citation_resource"
+            android:id="@+id/citation_resource_container_sub_01"
+            />
+        <include
+            layout="@layout/layout_citation_resource"
+            android:id="@+id/citation_resource_container_sub_02"
+            />
+        <include
+            layout="@layout/layout_citation_resource"
+            android:id="@+id/citation_resource_container_sub_03"
+            />
+        <include
+            layout="@layout/layout_citation_resource"
+            android:id="@+id/citation_resource_container_sub_04"
+            />
+
     </LinearLayout>
 </RelativeLayout>

@@ -141,6 +141,8 @@ dependencies {
     compile "com.squareup.retrofit:adapter-rxjava:$RETROFIT_VERSION"
     compile "com.squareup.retrofit:converter-gson:$RETROFIT_VERSION"
 
+    compile 'com.squareup.picasso:picasso:2.5.2'
+
     // rx
     compile 'io.reactivex:rxjava:1.0.15'
     compile 'io.reactivex:rxandroid:1.0.1'

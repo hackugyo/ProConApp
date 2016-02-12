@@ -57,7 +57,7 @@ public class UrlUtils {
         return TWITTER_POST_URL.matcher(url).matches();
     }
 
-    private static String TWITTER_DOMAIN_NAME = "twitter.com";
+    private static String TWITTER_DOMAIN_NAME = "(mobile.|)twitter.com";
     public static final Pattern TWITTER_POST_URL = Pattern.compile(
             "((?:(http|https|Http|Https|rtsp|Rtsp):\\/\\/(?:(?:[a-zA-Z0-9\\$\\-\\_\\.\\+\\!\\*\\'\\(\\)"
                     + "\\,\\;\\?\\&\\=]|(?:\\%[a-fA-F0-9]{2})){1,64}(?:\\:(?:[a-zA-Z0-9\\$\\-\\_"

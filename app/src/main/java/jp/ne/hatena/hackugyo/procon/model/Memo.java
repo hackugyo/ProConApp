@@ -4,6 +4,7 @@ import android.util.Patterns;
 
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
+import com.leocardz.link.preview.library.SourceContent;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -32,6 +33,7 @@ public class Memo {
     String pages;
 
     private boolean isLoaded = false;
+    private SourceContent mSourceContent;
 
     public Memo() { // no-arg constructor
         // Empty
@@ -111,5 +113,13 @@ public class Memo {
 
     public boolean isLoaded() {
         return isLoaded;
+    }
+
+    public SourceContent getSourceContent() {
+        return mSourceContent;
+    }
+
+    public void setSourceContent(SourceContent sourceContent) {
+        mSourceContent = sourceContent;
     }
 }

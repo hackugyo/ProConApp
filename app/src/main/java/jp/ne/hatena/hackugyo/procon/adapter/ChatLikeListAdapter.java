@@ -6,18 +6,23 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.leocardz.link.preview.library.SourceContent;
 import com.leocardz.link.preview.library.TextCrawler;
+import com.squareup.picasso.Picasso;
 
 import java.util.List;
 
 import jp.ne.hatena.hackugyo.procon.R;
 import jp.ne.hatena.hackugyo.procon.model.Memo;
 import jp.ne.hatena.hackugyo.procon.ui.RecyclerClickable;
+import jp.ne.hatena.hackugyo.procon.util.ArrayUtils;
 import jp.ne.hatena.hackugyo.procon.util.StringUtils;
+import jp.ne.hatena.hackugyo.procon.util.UrlUtils;
 
 /**
  * Created by kwatanabe on 15/08/27.
@@ -42,7 +47,7 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
     @Override
     public ChatLikeListAdapter.ChatLikeViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         if (viewType == VIEW_TYPE_URL_PREVIEW) {
-            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.list_item_chat_message, parent, false);
+            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.list_item_chat_url, parent, false);
             return new UrlPreviewViewHolder(v);
         } else {
             View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.list_item_chat_message, parent, false);
@@ -192,8 +197,31 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
 
     public class UrlPreviewViewHolder extends ChatLikeViewHolder {
 
+        private final LinearLayout citationResourceContainerSub01;
+        private final LinearLayout citationResourceContainerSub02;
+        private final LinearLayout citationResourceContainerSub03;
+        private final LinearLayout citationResourceContainerSub04;
+        private final LinearLayout[] citationResourceContainerSubs;
+        private final ImageView imageView;
+
         public UrlPreviewViewHolder(View v) {
             super(v);
+            imageView = (ImageView) v.findViewById(R.id.image);
+            citationResourceContainerSub01 = (LinearLayout) v.findViewById(R.id.citation_resource_container_sub_01);
+            citationResourceContainerSub02 = (LinearLayout) v.findViewById(R.id.citation_resource_container_sub_02);
+            citationResourceContainerSub03 = (LinearLayout) v.findViewById(R.id.citation_resource_container_sub_03);
+            citationResourceContainerSub04 = (LinearLayout) v.findViewById(R.id.citation_resource_container_sub_04);
+            citationResourceContainerSubs = new LinearLayout[] {
+                    citationResourceContainerSub01,
+                    citationResourceContainerSub02,
+                    citationResourceContainerSub03,
+                    citationResourceContainerSub04
+            };
+            for(LinearLayout ll : citationResourceContainerSubs) {
+                ll.setVisibility(View.GONE);
+            }
+            imageView.setVisibility(View.GONE);
+
         }
 
         @Override
@@ -203,6 +231,19 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
                 txtMessage.setText(memo.isLoaded() ? "読込失敗" : "読込中");
             } else {
                 txtMessage.setText(memoText);
+            }
+
+            SourceContent sourceContent = memo.getSourceContent();
+            if (sourceContent != null && ArrayUtils.any(sourceContent.getImages()) && UrlUtils.isTwitterUrl(sourceContent.getFinalUrl())) {
+                Picasso
+                        .with(context)
+                        .load(memo.getSourceContent().getImages().get(0))
+                        .fit()
+                        .centerInside()
+                        .into(imageView);
+                imageView.setVisibility(View.VISIBLE);
+            } else {
+                imageView.setVisibility(View.GONE);
             }
         }
     }
