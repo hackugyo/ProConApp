@@ -1,9 +1,7 @@
 package jp.ne.hatena.hackugyo.procon.model;
 
 import android.content.Context;
-import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
-import android.util.Log;
 
 import com.j256.ormlite.android.apptools.OpenHelperManager;
 import com.j256.ormlite.android.apptools.OrmLiteSqliteOpenHelper;
@@ -12,6 +10,8 @@ import com.j256.ormlite.table.TableUtils;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import jp.ne.hatena.hackugyo.procon.util.LogUtils;
+
 /**
  * Created by kwatanabe on 15/09/07.
  */
@@ -19,7 +19,7 @@ public class DatabaseHelper extends OrmLiteSqliteOpenHelper {
     /**
      * データベースのファイル名。SQLiteではデータベースは単一のファイルとして管理される。
      */
-    private static final String DATABASE_NAME = "mapmemo.db";
+    private static final String DATABASE_NAME = "procon_app.db";
 
     /**
      * データベースのヴァージョン。今後、テーブルの追加や変更をした際には、このヴァージョンを更新することで、アプリにDBが更新されたことを伝える。
@@ -47,7 +47,7 @@ public class DatabaseHelper extends OrmLiteSqliteOpenHelper {
             // エンティティを指定してCREATE TABLE（テーブルを作成）します
             TableUtils.createTable(connectionSource, Memo.class);
         } catch (java.sql.SQLException e) {
-            Log.e("MapMemo", "データベースを作成できませんでした", e);
+            LogUtils.e("データベースを作成できませんでした", e);
         }
     }
 
