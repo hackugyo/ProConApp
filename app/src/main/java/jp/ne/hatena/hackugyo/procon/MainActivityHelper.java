@@ -18,6 +18,7 @@ import java.util.List;
 import jp.ne.hatena.hackugyo.procon.io.ImprovedTextCrawler;
 import jp.ne.hatena.hackugyo.procon.model.Memo;
 import jp.ne.hatena.hackugyo.procon.util.ArrayUtils;
+import jp.ne.hatena.hackugyo.procon.util.LogUtils;
 import jp.ne.hatena.hackugyo.procon.util.StringUtils;
 import jp.ne.hatena.hackugyo.procon.util.UrlUtils;
 import rx.Observable;
@@ -118,7 +119,8 @@ public class MainActivityHelper {
             // 失敗
             return null;
         } else {
-            return sourceContent.getDescription();
+            return StringUtils.isPresent(sourceContent.getDescription()) ? sourceContent.getDescription() :
+                    StringUtils.isPresent(sourceContent.getTitle()) ? sourceContent.getTitle() : "";
         }
     }
 

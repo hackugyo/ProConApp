@@ -22,7 +22,7 @@ public class MiddleTableQueryBuilder<T extends MiddleModel> {
     private PreparedDelete<T> deleteMiddleForFirstQuery;
     private PreparedDelete<T> deleteMiddleForSecondQuery;
 
-    public MiddleTableQueryBuilder(Dao<T, Integer> dao, String idNameForFirst, String idNameForSecond ) {
+    public MiddleTableQueryBuilder(Dao<T, Integer> dao, String idNameForFirst, String idNameForSecond) {
         middleTableDao = dao;
         this.idNameForFirst = idNameForFirst;
         this.idNameForSecond = idNameForSecond;
