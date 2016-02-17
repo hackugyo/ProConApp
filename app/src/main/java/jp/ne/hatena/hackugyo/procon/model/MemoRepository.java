@@ -115,6 +115,7 @@ public class MemoRepository {
     public List<Memo> loadFromChatTheme(ChatTheme chatTheme) {
         if (chatTheme == null) return null;
         ForeignCollection<Memo> children = chatTheme.getChildren();
+        if (children == null) return new ArrayList<>();
         return lookupCitationResource(
                 Arrays.asList(children.toArray(new Memo[children.size()]))
         );

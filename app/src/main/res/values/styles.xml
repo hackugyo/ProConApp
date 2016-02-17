@@ -51,4 +51,11 @@
         <!-- backgroundTintは、Android 5.0以降では適用されない。 -->
         <item name="backgroundTint">@color/button_color_cons</item>
     </style>
+    <style name="OtherButton">
+        <item name="android:textColor">@color/button_text_color</item>
+        <!-- colorButtonNormalでstate_enable = false 以外を色設定しても、Android 4.4以前では適用されない。 -->
+        <item name="colorButtonNormal">@color/app_primary</item>
+        <!-- backgroundTintは、Android 5.0以降では適用されない。 -->
+        <item name="backgroundTint">@color/app_primary</item>
+    </style>
 </resources>

@@ -5,6 +5,7 @@ import android.content.Context;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.stmt.PreparedQuery;
 import com.j256.ormlite.stmt.QueryBuilder;
+import com.j256.ormlite.stmt.Where;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -81,5 +82,24 @@ public class ChatThemeRepository {
             e.printStackTrace();
         }
         return new ArrayList<ChatTheme>();
+    }
+
+    public ChatTheme findById(long itemId) {
+        QueryBuilder<ChatTheme, Integer> qb = chatThemeDao.queryBuilder();
+
+        try {
+
+            Where<ChatTheme, Integer> eq = qb.where().eq(ChatTheme.ID_FIELD, itemId);
+            qb.setWhere(eq);
+            List<ChatTheme> query = chatThemeDao.query(qb.prepare());
+            if (query.size() != 1) {
+                return null;
+            } else {
+                return query.get(0);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }

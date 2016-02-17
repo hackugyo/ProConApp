@@ -18,7 +18,6 @@ import java.util.List;
 import jp.ne.hatena.hackugyo.procon.io.ImprovedTextCrawler;
 import jp.ne.hatena.hackugyo.procon.model.Memo;
 import jp.ne.hatena.hackugyo.procon.util.ArrayUtils;
-import jp.ne.hatena.hackugyo.procon.util.LogUtils;
 import jp.ne.hatena.hackugyo.procon.util.StringUtils;
 import jp.ne.hatena.hackugyo.procon.util.UrlUtils;
 import rx.Observable;
@@ -45,7 +44,15 @@ public class MainActivityHelper {
     }
 
     void loadPreview() {
-        List<Memo> toBeLoaded = Observable.from(ArrayUtils.reverse(memos))
+        loadPreview(Observable.from(ArrayUtils.reverse(this.memos)));
+    }
+
+    void loadPreview(Memo memo) {
+        loadPreview(Observable.just(memo));
+    }
+
+    void loadPreview(Observable<Memo> memoObservable) {
+        List<Memo> toBeLoaded = memoObservable
                 .observeOn(Schedulers.io())
                 .filter(new Func1<Memo, Boolean>() {
                     @Override
@@ -88,7 +95,7 @@ public class MainActivityHelper {
                         SourceContent sourceContent = pair.second;
                         final String content = previewText(sourceContent);
                         Memo memo = Observable.from(memos)
-                                .first(new Func1<Memo, Boolean>() {
+                                .firstOrDefault(null, new Func1<Memo, Boolean>() {
                                     @Override
                                     public Boolean call(Memo memo) {
                                         return memo.getId() == id;
@@ -108,7 +115,6 @@ public class MainActivityHelper {
                                 }
                             });
                         }
-
                     }
                 });
     }

@@ -7,13 +7,16 @@ import com.j256.ormlite.field.ForeignCollectionField;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
+import jp.ne.hatena.hackugyo.procon.util.StringUtils;
+
 /**
  * Created by kwatanabe on 16/02/12.
  */
 public class ChatTheme {
+    public static final String ID_FIELD = "id";
     public static final String TIMESTAMP_FIELD = "timestamp";
 
-    @DatabaseField(generatedId = true, allowGeneratedIdInsert = true)
+    @DatabaseField(columnName =  ID_FIELD, generatedId = true, allowGeneratedIdInsert = true)
     Long id;
 
     @DatabaseField(useGetSet = true)
@@ -65,5 +68,19 @@ public class ChatTheme {
         if (date == null) return "";
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd\tHH:mm:ss\t");
         return sdf.format(date.getTime());
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    @Override
+    public String toString() {
+        return StringUtils.build(
+                super.toString(),
+                "{id: ", StringUtils.valueOf(id),
+                ", title: ", title,
+                "}"
+        );
     }
 }
