@@ -93,15 +93,15 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
                 }
             });
         }
+        setupViews();
 
         reloadChatThemeList();
         chatTheme = chatThemeList.get(0);
         reloadChatThemeMenu();
 
-        setupViews();
-
         //memo の表示
         loadMemo(chatTheme);
+        renewCitationResources();
         mainActivityHelper = new MainActivityHelper(
                 new ImprovedTextCrawler(AppApplication.provideOkHttpClient(this)),
                 mChatLikeListAdapter,
@@ -249,7 +249,7 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
     private Memo insertMemo(String text, Calendar cal, String resource, String pages, boolean isPro) {
         //memo を追加し、セーブする
         Memo memo = new Memo(cal, text, isPro);
-        memo.addCitationResource(resource);
+        memo.addCitationResource(resource.replaceAll("\\s+$", ""));
         memo.setPages(pages);
         memo.setChatTheme(chatTheme);
         if(memoRepository.save(memo)) {
@@ -338,7 +338,6 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
 
     public ArrayAdapter<String> getCitationResourceSuggestionAdapter() {
         if (mCitationResourceSuggestionAdapter == null) {
-            renewCitationResources();
             mCitationResourceSuggestionAdapter = new ArrayAdapter<String>(
                     this,
                     android.R.layout.simple_dropdown_item_1line,
@@ -350,24 +349,46 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
 
     public void renewCitationResources() {
         citationResouces.clear();
+
+        Observable<String> memoObservable = Observable
+                .from(mMemos)
+                .map(new Func1<Memo, String>() {
+
+                    @Override
+                    public String call(Memo memo) {
+                        return memo.getCitationResource();
+                    }
+                });
+        // 気を利かせて、メモが1つ未満のときはすべての議題を検索して候補を提示する
+        if (mMemos.size() <= 1) {
+            memoObservable = Observable.merge(
+                    memoObservable,
+                    Observable
+                            .from(citationResourceRepository.findAll())
+                            .map(new Func1<CitationResource, String>() {
+                                @Override
+                                public String call(CitationResource citationResource) {
+                                    return citationResource.getName();
+                                }
+                            }));
+        }
         citationResouces.addAll(
-                Observable
-                        .from(citationResourceRepository.findAll())
-                        .map(new Func1<CitationResource, String>() {
-                            @Override
-                            public String call(CitationResource citationResource) {
-                                return citationResource.getName();
-                            }
-                        })
+                memoObservable
                         .filter(new Func1<String, Boolean>() {
                             @Override
                             public Boolean call(String s) {
-                                return !UrlUtils.isValidUrl(s);
+                                LogUtils.i("s: " + s);
+                                return !StringUtils.isEmpty(s) && !UrlUtils.isValidUrl(s.replaceAll("\\s+$", ""));
                             }
                         })
                         .distinct()
                         .toList().toBlocking().single());
 
+        // notifiyDataSetChangedだと正しく更新されない
+        getCitationResourceSuggestionAdapter().clear();
+        getCitationResourceSuggestionAdapter().addAll(citationResouces);
+        getCitationResourceSuggestionAdapter().notifyDataSetChanged();
+        mResourceEditText.setAdapter(getCitationResourceSuggestionAdapter());
     }
 
 
@@ -427,10 +448,7 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
                             chatThemeRepository.save(chatTheme);// ここでIDがセットされる
                             chatThemeList.add(chatTheme);
                         }
-                        reloadChatThemeList();
-                        reloadChatThemeMenu();
-                        loadMemo(chatTheme);
-                        mainActivityHelper.loadPreview();
+                        reloadChatTheme(chatTheme);
 
                         getDrawerLayout().closeDrawers();
                         return true;
@@ -453,9 +471,7 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
             chatTheme = new ChatTheme(newTheme);
             chatThemeRepository.save(chatTheme);// ここでIDがセットされる
             chatThemeList.add(chatTheme);
-            reloadChatThemeList();
-            reloadChatThemeMenu();
-            loadMemo(chatTheme);
+            reloadChatTheme(chatTheme);
 
             getDrawerLayout().closeDrawers();
         } else {
@@ -471,5 +487,13 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
             LogUtils.w("Something wrong. " + tag);
         }
 
+    }
+
+    private void reloadChatTheme(ChatTheme ct) {
+        reloadChatThemeList();
+        reloadChatThemeMenu();
+        loadMemo(ct);
+        renewCitationResources();
+        mainActivityHelper.loadPreview();
     }
 }

@@ -61,6 +61,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="@string/hint_citation_resource"
+                android:descendantFocusability="beforeDescendants"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
                 android:maxLines="1"
                 />
         </android.support.design.widget.TextInputLayout>
@@ -69,10 +72,13 @@
             android:layout_height="wrap_content"
             android:text="pp."
             />
-        <EditText
+        <android.support.v7.widget.AppCompatEditText
             android:id="@+id/editText_pages"
             android:layout_width="44dp"
             android:layout_height="wrap_content"
+            android:descendantFocusability="beforeDescendants"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
             android:maxLines="1"
             />
     </LinearLayout>
@@ -83,6 +89,9 @@
         android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
         android:layout_alignParentBottom="true"
+        android:descendantFocusability="beforeDescendants"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
         android:hint="@string/hint" />
 
 </merge>

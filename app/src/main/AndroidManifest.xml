@@ -11,6 +11,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme.NoActionBar"
         android:name=".AppApplication"
+        android:windowSoftInputMode="stateVisible|adjustPan"
         >
         <meta-data android:name="com.google.android.geo.API_KEY" android:value="AIzaSyAN5D-jUdhYhVC0exqSaNidRq3-FhxC9q4"/>
         <activity
