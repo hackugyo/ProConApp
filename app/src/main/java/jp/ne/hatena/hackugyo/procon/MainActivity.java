@@ -650,7 +650,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     @Override
     public void onAlertDialogCancelled(String tag, Bundle args) {
         if (StringUtils.isSame(tag, TAG_INPUT_NEW_THEME)) {
-            getDrawerManager().closeDrawers();
+            // nothing to do.
         } else if (StringUtils.isSame(tag, TAG_CONFIRM_DELETE_THEME)) {
             // nothing to do.
         } else {
@@ -707,24 +707,25 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     private boolean editChatTheme(String newTitle, boolean isUndoable) {
         if (chatTheme == null) return false;
         final String currentTitle = chatTheme.getTitle();
-        if (!StringUtils.isSame(currentTitle, newTitle)) {
-            chatTheme.setTitle(newTitle);
-            chatThemeRepository.save(chatTheme);
-            reloadChatThemeList();
-            reloadChatThemeMenu();
-
-            if (isUndoable) {
-                LinearLayout layout = (LinearLayout) findViewById(R.id.snackbar);
-                Snackbar undoSnackbar = Snackbar.make(layout, R.string.toast_theme_name_edited, Snackbar.LENGTH_SHORT)
-                        .setAction(R.string.undo_theme_name_edited, new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                editChatTheme(currentTitle, false);
-                            }
-                        });
-                undoSnackbar.show();
-            }
-            return true;
+        if (StringUtils.isSame(currentTitle, newTitle)) {
+            return false;
         }
+        chatTheme.setTitle(newTitle);
+        chatThemeRepository.save(chatTheme);
+        reloadChatThemeList();
+        reloadChatThemeMenu();
+
+        if (isUndoable) {
+            LinearLayout layout = (LinearLayout) findViewById(R.id.snackbar);
+            Snackbar undoSnackbar = Snackbar.make(layout, R.string.toast_theme_name_edited, Snackbar.LENGTH_SHORT)
+                    .setAction(R.string.undo_theme_name_edited, new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            editChatTheme(currentTitle, false);
+                        }
+                    });
+            undoSnackbar.show();
+        }
+        return true;
     }
 }
