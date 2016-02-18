@@ -11,6 +11,8 @@
     <string name="save_as_con">反対意見 ↑</string>
     <string name="hint">note here</string>
     <string name="hint_citation_resource">出典情報（URLも可）</string>
+    <string name="toast_theme_name_edited">タイトルを変更しました</string>
+    <string name="undo_theme_name_edited">元に戻す</string>
 
     <string name="Dialog_Button_Label_Positive">OK</string>
     <string name="Dialog_Button_Label_Negative">キャンセル</string>

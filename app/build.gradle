@@ -149,9 +149,8 @@ dependencies {
     // rx
     compile 'io.reactivex:rxjava:1.0.15'
     compile 'io.reactivex:rxandroid:1.0.1'
-
-    // event bus (for communication with services and activities)
-    compile 'de.greenrobot:eventbus:2.4.0'
+    // rx view binding
+    compile 'com.jakewharton.rxbinding:rxbinding:0.3.0'
 
     // Database library.
     compile 'io.realm:realm-android:0.87.0'

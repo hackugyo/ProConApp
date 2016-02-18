@@ -14,11 +14,13 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
@@ -27,6 +29,10 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.jakewharton.rxbinding.view.RxView;
+import com.jakewharton.rxbinding.widget.RxTextView;
+import com.jakewharton.rxbinding.widget.TextViewEditorActionEvent;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -188,6 +194,32 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         provideThemeDeleteButton();
         provideRightDrawerRecyclerView();
 
+        getDrawerManager().setDrawerListener(new DrawerLayout.DrawerListener() {
+            @Override
+            public void onDrawerSlide(View drawerView, float slideOffset) {
+
+            }
+
+            @Override
+            public void onDrawerOpened(View drawerView) {
+                //Keyboard の消去
+                InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                inputMethodManager.hideSoftInputFromWindow(drawerView.getWindowToken(), 0);
+            }
+
+            @Override
+            public void onDrawerClosed(View drawerView) {
+                //Keyboard の消去
+                InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                inputMethodManager.hideSoftInputFromWindow(drawerView.getWindowToken(), 0);
+            }
+
+            @Override
+            public void onDrawerStateChanged(int newState) {
+
+            }
+        });
+
         mainRecyclerView = (RecyclerViewEmptySupport) findViewById(R.id.listView);
         mainListAdapter = new ChatLikeListAdapter(this, memos, getMainOnClickRecyclerListener());
         mainRecyclerView.setAdapter(mainListAdapter);
@@ -239,8 +271,39 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     }
 
     private TextView provideRightDrawerTitle() {
-        TextView title = (TextView) provideRightDrawer().getHeaderView(0).findViewById(R.id.navigation_header_right_title);
-        return title;
+        if (themeEditText == null) {
+            themeEditText = (EditText) provideRightDrawer().getHeaderView(0).findViewById(R.id.navigation_header_right_title);
+            Observable<TextViewEditorActionEvent> textViewEditorActionEventObservable = RxTextView.editorActionEvents(themeEditText);
+            textViewEditorActionEventObservable.subscribe(
+                    new Action1<TextViewEditorActionEvent>() {
+                        @Override
+                        public void call(TextViewEditorActionEvent event) {
+                            if (
+                                    event.actionId() == EditorInfo.IME_ACTION_DONE ||
+                                            (event.keyEvent().getKeyCode() == KeyEvent.KEYCODE_ENTER && event.keyEvent().getAction() == KeyEvent.ACTION_DOWN)
+                                    ) {
+                                //Keyboard の消去
+                                InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                                inputMethodManager.hideSoftInputFromWindow(event.view().getWindowToken(), 0);
+
+                                if (editChatTheme(event.view().getText().toString(), false)) {
+                                    showSingleToast(R.string.toast_theme_name_edited, Toast.LENGTH_SHORT);
+                                }
+                            }
+                        }
+                    }
+            );
+            Observable<Boolean> booleanObservable = RxView.focusChanges(themeEditText);
+            booleanObservable.subscribe(new Action1<Boolean>() {
+                @Override
+                public void call(Boolean hasFocus) {
+                    if (!hasFocus) {
+                        editChatTheme(themeEditText.getText().toString());
+                    }
+                }
+            });
+        }
+        return themeEditText;
     }
 
     private AppCompatButton provideThemeDeleteButton() {
@@ -633,5 +696,35 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                             }
                         })
                 .subscribe();
+    }
+
+
+
+    private boolean editChatTheme(String newTitle) {
+        return editChatTheme(newTitle, true);
+    }
+
+    private boolean editChatTheme(String newTitle, boolean isUndoable) {
+        if (chatTheme == null) return false;
+        final String currentTitle = chatTheme.getTitle();
+        if (!StringUtils.isSame(currentTitle, newTitle)) {
+            chatTheme.setTitle(newTitle);
+            chatThemeRepository.save(chatTheme);
+            reloadChatThemeList();
+            reloadChatThemeMenu();
+
+            if (isUndoable) {
+                LinearLayout layout = (LinearLayout) findViewById(R.id.snackbar);
+                Snackbar undoSnackbar = Snackbar.make(layout, R.string.toast_theme_name_edited, Snackbar.LENGTH_SHORT)
+                        .setAction(R.string.undo_theme_name_edited, new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                editChatTheme(currentTitle, false);
+                            }
+                        });
+                undoSnackbar.show();
+            }
+            return true;
+        }
     }
 }
