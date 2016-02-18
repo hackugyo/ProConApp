@@ -15,7 +15,7 @@
 
     <include layout="@layout/layout_main_content" />
 
-    <!-- ドロワー部分 -->
+    <!-- ドロワー部分（←） -->
     <android.support.design.widget.NavigationView
         android:id="@+id/navigation_view"
         android:layout_width="match_parent"
@@ -23,7 +23,19 @@
         android:layout_gravity="start"
         android:background="@android:color/white"
         android:fitsSystemWindows="true"
-        app:headerLayout="@layout/layout_navigation_header"
-        app:menu="@menu/menu_navigationdrawer_main" />
+        app:headerLayout="@layout/layout_navigation_header_left"
+        app:menu="@menu/menu_navigationdrawer_main"
+        />
+
+    <!-- ドロワー右 -->
+    <android.support.design.widget.NavigationView
+        android:id="@+id/drawer_right"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="right"
+        android:background="@android:color/white"
+        android:fitsSystemWindows="true"
+        app:headerLayout="@layout/layout_navigation_header_right"
+        />
 </android.support.v4.widget.DrawerLayout>
 

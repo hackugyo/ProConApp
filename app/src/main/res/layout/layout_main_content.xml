@@ -29,7 +29,7 @@
                 />
         </android.support.design.widget.AppBarLayout>
 
-        <android.support.v7.widget.RecyclerView
+        <jp.ne.hatena.hackugyo.procon.ui.widget.RecyclerViewEmptySupport
             android:id="@+id/listView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"

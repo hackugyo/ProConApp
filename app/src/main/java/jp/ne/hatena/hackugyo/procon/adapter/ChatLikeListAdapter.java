@@ -1,6 +1,7 @@
 package jp.ne.hatena.hackugyo.procon.adapter;
 
 import android.app.Activity;
+import android.support.v7.widget.AppCompatTextView;
 import android.support.v7.widget.RecyclerView;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -36,10 +37,10 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
     private final TextCrawler textCrawler;
     private Activity context;
 
-    public ChatLikeListAdapter(Activity context, List<Memo> memos) {
+    public ChatLikeListAdapter(Activity context, List<Memo> memos, RecyclerClickable onClickListener) {
         this.context = context;
         this.mMemos = memos;
-        mOnClickListener = ((context instanceof RecyclerClickable) ? (RecyclerClickable) context : null);
+        mOnClickListener = onClickListener;
         textCrawler = new TextCrawler();
     }
 
@@ -79,7 +80,8 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
                 holder.pagesMark.setText(memo.hasManyPages() ? "pp." : "p.");
             }
         }
-        holder.itemView.setOnClickListener(new View.OnClickListener() {
+        // holder.itemViewにリスナーをつけてしまうと，右寄せにしたとき左側の空欄もタップに反応してしまう
+        holder.content.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if (mOnClickListener != null) {
@@ -87,7 +89,7 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
                 }
             }
         });
-        holder.itemView.setOnLongClickListener(new View.OnLongClickListener() {
+        holder.content.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View view) {
                 if (mOnClickListener != null) {
@@ -121,49 +123,32 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
     }
 
     private void setAlignment(ChatLikeViewHolder holder, boolean isMe) {
-        if (!isMe) {
-            holder.contentWithBG.setBackgroundResource(R.drawable.in_message_bg);
+        boolean toRight = !isMe;
 
-            LinearLayout.LayoutParams layoutParams =
-                    (LinearLayout.LayoutParams) holder.contentWithBG.getLayoutParams();
-            layoutParams.gravity = Gravity.RIGHT;
-            holder.contentWithBG.setLayoutParams(layoutParams);
-
-            RelativeLayout.LayoutParams lp =
-                    (RelativeLayout.LayoutParams) holder.content.getLayoutParams();
-            lp.addRule(RelativeLayout.ALIGN_PARENT_LEFT, 0);
-            lp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
-            holder.content.setLayoutParams(lp);
-            layoutParams = (LinearLayout.LayoutParams) holder.txtMessage.getLayoutParams();
-            layoutParams.gravity = Gravity.RIGHT;
-            holder.txtMessage.setLayoutParams(layoutParams);
-
-            layoutParams = (LinearLayout.LayoutParams) holder.txtInfo.getLayoutParams();
-            layoutParams.gravity = Gravity.RIGHT;
-            holder.txtInfo.setLayoutParams(layoutParams);
-        } else {
-            holder.contentWithBG.setBackgroundResource(R.drawable.out_message_bg);
-
-            LinearLayout.LayoutParams layoutParams =
-                    (LinearLayout.LayoutParams) holder.contentWithBG.getLayoutParams();
-            layoutParams.gravity = Gravity.LEFT;
-            holder.contentWithBG.setLayoutParams(layoutParams);
-
-            RelativeLayout.LayoutParams lp =
-                    (RelativeLayout.LayoutParams) holder.content.getLayoutParams();
-            lp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT, 0);
-            lp.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
-            holder.content.setLayoutParams(lp);
-            layoutParams = (LinearLayout.LayoutParams) holder.txtMessage.getLayoutParams();
-            layoutParams.gravity = Gravity.LEFT;
-            holder.txtMessage.setLayoutParams(layoutParams);
-
-            layoutParams = (LinearLayout.LayoutParams) holder.txtInfo.getLayoutParams();
-            layoutParams.gravity = Gravity.LEFT;
-            holder.txtInfo.setLayoutParams(layoutParams);
-        }
+        holder.contentWithBG.setBackgroundResource(toRight ? R.drawable.in_message_bg : R.drawable.out_message_bg);
+        setGravityInLinearLayout(holder.contentWithBG, toRight);
+        setGravityInLinearLayout(holder.txtMessage, toRight);
+        setGravityInLinearLayout(holder.txtInfo, toRight);
+        setGravityInRelativeLayout(holder.content, toRight);
     }
 
+    private boolean setGravityInLinearLayout(View ll, boolean toRight) {
+        LinearLayout.LayoutParams layoutParams = (LinearLayout.LayoutParams) ll.getLayoutParams();
+        if (layoutParams == null) return false;
+        layoutParams.gravity = toRight ? Gravity.RIGHT : Gravity.LEFT;
+        ll.setLayoutParams(layoutParams);
+        return true;
+    }
+
+
+    private boolean setGravityInRelativeLayout(View rl, boolean toRight) {
+        RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams)  rl.getLayoutParams();
+        if (layoutParams == null) return false;
+        layoutParams.addRule(RelativeLayout.ALIGN_PARENT_LEFT, toRight ? 0 : RelativeLayout.TRUE);
+        layoutParams.addRule(RelativeLayout.ALIGN_PARENT_RIGHT, toRight ? RelativeLayout.TRUE : 0);
+        rl.setLayoutParams(layoutParams);
+        return true;
+    }
 
     public static class ChatLikeViewHolder extends RecyclerView.ViewHolder {
         private final LinearLayout citationResourceContainer;
@@ -171,7 +156,7 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
         public TextView txtInfo;
         public LinearLayout content;
         public LinearLayout contentWithBG;
-        public TextView citationResource;
+        public AppCompatTextView citationResource;
         public TextView pages;
         public TextView pagesMark;
         public TextView numberOfTheMessage;
@@ -183,7 +168,7 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
             content = (LinearLayout) v.findViewById(R.id.content);
             contentWithBG = (LinearLayout) v.findViewById(R.id.contentWithBackground);
             txtInfo = (TextView) v.findViewById(R.id.txtInfo);
-            citationResource = (TextView) v.findViewById(R.id.message_source);
+            citationResource = (AppCompatTextView) v.findViewById(R.id.message_source);
             pagesMark = (TextView) v.findViewById(R.id.message_source_pages_mark);
             pages = (TextView) v.findViewById(R.id.message_source_pages);
             citationResourceContainer = (LinearLayout) v.findViewById(R.id.citation_resource_container);

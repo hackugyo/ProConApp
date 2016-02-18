@@ -64,6 +64,8 @@
                 android:descendantFocusability="beforeDescendants"
                 android:focusable="true"
                 android:focusableInTouchMode="true"
+                android:inputType="textAutoComplete"
+                android:nextFocusDown="@+id/editText_pages"
                 android:maxLines="1"
                 />
         </android.support.design.widget.TextInputLayout>
@@ -76,9 +78,11 @@
             android:id="@+id/editText_pages"
             android:layout_width="44dp"
             android:layout_height="wrap_content"
+            android:inputType="text"
             android:descendantFocusability="beforeDescendants"
             android:focusable="true"
             android:focusableInTouchMode="true"
+            android:nextFocusDown="@+id/editText"
             android:maxLines="1"
             />
     </LinearLayout>
@@ -89,6 +93,7 @@
         android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
         android:layout_alignParentBottom="true"
+        android:inputType="textMultiLine"
         android:descendantFocusability="beforeDescendants"
         android:focusable="true"
         android:focusableInTouchMode="true"

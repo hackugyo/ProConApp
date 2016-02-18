@@ -9,10 +9,12 @@ import android.os.Bundle;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
 import android.support.v4.widget.DrawerLayout;
+import android.support.v7.widget.AppCompatButton;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -23,6 +25,7 @@ import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -40,35 +43,51 @@ import jp.ne.hatena.hackugyo.procon.model.MemoRepository;
 import jp.ne.hatena.hackugyo.procon.ui.AbsBaseActivity;
 import jp.ne.hatena.hackugyo.procon.ui.RecyclerClickable;
 import jp.ne.hatena.hackugyo.procon.ui.fragment.AbsCustomDialogFragment;
+import jp.ne.hatena.hackugyo.procon.ui.fragment.ConfirmDialogFragment;
 import jp.ne.hatena.hackugyo.procon.ui.fragment.InputDialogFragment;
+import jp.ne.hatena.hackugyo.procon.ui.widget.RecyclerViewEmptySupport;
 import jp.ne.hatena.hackugyo.procon.util.LogUtils;
 import jp.ne.hatena.hackugyo.procon.util.StringUtils;
 import jp.ne.hatena.hackugyo.procon.util.UrlUtils;
 import rx.Observable;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action0;
+import rx.functions.Action1;
 import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
-public class MainActivity extends AbsBaseActivity implements RecyclerClickable, AbsCustomDialogFragment.Callbacks {
+public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFragment.Callbacks {
 
     public static final String TAG_INPUT_NEW_THEME = "MainActivity.TAG_INPUT_NEW_THEME";
+    private static final String TAG_CONFIRM_DELETE_THEME = "MainActivity.TAG_CONFIRM_DELETE_THEME";
 
-    final ArrayList<Memo> mMemos = new ArrayList<Memo>();
-    RecyclerView mListView;
-    ChatLikeListAdapter mChatLikeListAdapter;
-    private MemoRepository memoRepository;
+    private EditText contentEditText;
+    private EditText pagesEditText;
+    private AutoCompleteTextView citationResourceEditText;
+    private ArrayAdapter<String> citationResourceSuggestionAdapter;
+    private NavigationView drawerLeft;
+    private DrawerLayout drawerManager;
+    private NavigationView drawerRight;
+    private EditText themeEditText;
+    private AppCompatButton themeDeleteButton;
+
+    RecyclerViewEmptySupport mainRecyclerView, summaryRecyclerView;
+    ChatLikeListAdapter mainListAdapter;
     Snackbar snackbar;
-    private EditText mContentEditText;
-    private EditText mPagesEditText;
-    private AutoCompleteTextView mResourceEditText;
-    private MainActivityHelper mainActivityHelper;
+
     private ChatTheme chatTheme;
-    private ArrayAdapter<String> mCitationResourceSuggestionAdapter;
+    final ArrayList<Memo> memos = new ArrayList<Memo>();
     private final List<ChatTheme> chatThemeList = new ArrayList<>();
-    private final List<String> citationResouces = new ArrayList<>();
+    private final List<String> citationResources = new ArrayList<>();
+
+    private MemoRepository memoRepository;
     private ChatThemeRepository chatThemeRepository;
     private CitationResourceRepository citationResourceRepository;
-    private NavigationView navigationView;
-    private DrawerLayout drawerLayout;
+
+    private MainActivityHelper mainActivityHelper;
+
     private NavigationView.OnNavigationItemSelectedListener onNavigationItemSelectedListener;
+    private RecyclerClickable mainOnClickRecyclerListener, summaryOnClickRecyclerListener;
 
 
     @Override
@@ -89,7 +108,7 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
             toolbar.setNavigationOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    getDrawerLayout().openDrawer(Gravity.LEFT);
+                    getDrawerManager().openDrawer(Gravity.LEFT);
                 }
             });
         }
@@ -104,8 +123,8 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
         renewCitationResources();
         mainActivityHelper = new MainActivityHelper(
                 new ImprovedTextCrawler(AppApplication.provideOkHttpClient(this)),
-                mChatLikeListAdapter,
-                mMemos);
+                mainListAdapter,
+                memos);
     }
 
     @Override
@@ -139,6 +158,12 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
         int id = item.getItemId();
         //icon 押下時の処置
         if (id == R.id.menu_globe) {
+            NavigationView drawer = provideRightDrawer();
+            if (getDrawerManager().isDrawerOpen(drawer)) {
+                getDrawerManager().closeDrawer(drawer);
+            } else {
+                getDrawerManager().openDrawer(drawer);
+            }
             return true;
         }
 
@@ -151,19 +176,25 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
 
     private void setupViews() {
 
-        mContentEditText = (EditText) findViewById(R.id.editText);
-        mResourceEditText = (AutoCompleteTextView) findViewById(R.id.editText_from);
-        mResourceEditText.setAdapter(getCitationResourceSuggestionAdapter());
-        mPagesEditText = (EditText) findViewById(R.id.editText_pages);
+        contentEditText = (EditText) findViewById(R.id.editText);
+        citationResourceEditText = (AutoCompleteTextView) findViewById(R.id.editText_from);
+        citationResourceEditText.setAdapter(getCitationResourceSuggestionAdapter());
+        pagesEditText = (EditText) findViewById(R.id.editText_pages);
         setupAddAsProButton();
         setupAddAsConButton();
 
-        mListView = (RecyclerView) findViewById(R.id.listView);
-        mChatLikeListAdapter = new ChatLikeListAdapter(this, mMemos);
-        mListView.setAdapter(mChatLikeListAdapter);
+        provideRightDrawer();
+        provideRightDrawerTitle();
+        provideThemeDeleteButton();
+        provideRightDrawerRecyclerView();
+
+        mainRecyclerView = (RecyclerViewEmptySupport) findViewById(R.id.listView);
+        mainListAdapter = new ChatLikeListAdapter(this, memos, getMainOnClickRecyclerListener());
+        mainRecyclerView.setAdapter(mainListAdapter);
         LinearLayoutManager llm = new LinearLayoutManager(this);
         llm.setOrientation(LinearLayoutManager.VERTICAL);
-        mListView.setLayoutManager(llm);
+        mainRecyclerView.setLayoutManager(llm);
+
     }
 
     private Button setupAddAsProButton() {
@@ -200,34 +231,77 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
         return viewById;
     }
 
+    private NavigationView provideRightDrawer() {
+        if (drawerRight == null) {
+            drawerRight = (NavigationView) findViewById(R.id.drawer_right);
+        }
+        return drawerRight;
+    }
+
+    private TextView provideRightDrawerTitle() {
+        TextView title = (TextView) provideRightDrawer().getHeaderView(0).findViewById(R.id.navigation_header_right_title);
+        return title;
+    }
+
+    private AppCompatButton provideThemeDeleteButton() {
+        if (themeDeleteButton == null) {
+            themeDeleteButton = (AppCompatButton) provideRightDrawer().getHeaderView(0).findViewById(R.id.button_delete_this_theme);
+            themeDeleteButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    ConfirmDialogFragment confirmDialogFragment = ConfirmDialogFragment.newInstance(MainActivity.this, null, "", "削除しますか？　この議題のメモはすべて失われ、元に戻すことはできません。");
+                    showDialogFragment(confirmDialogFragment, TAG_CONFIRM_DELETE_THEME);
+                }
+            });
+        }
+        return themeDeleteButton;
+    }
+
+    private RecyclerView provideRightDrawerRecyclerView() {
+        if (summaryRecyclerView == null) {
+
+            View container = LayoutInflater.from(this).inflate(R.layout.layout_navidation_content_right, null, false);
+            provideRightDrawer().addHeaderView(container);
+            summaryRecyclerView = (RecyclerViewEmptySupport) container.findViewById(R.id.listView_summary);
+            mainListAdapter = new ChatLikeListAdapter(this, memos, getMainOnClickRecyclerListener());
+            summaryRecyclerView.setAdapter(mainListAdapter);
+            LinearLayoutManager llm = new LinearLayoutManager(this);
+            llm.setOrientation(LinearLayoutManager.VERTICAL);
+            summaryRecyclerView.setLayoutManager(llm);
+            summaryRecyclerView.setEmptyView(container.findViewById(R.id.summary_empty));
+
+        }
+        return summaryRecyclerView;
+    }
+
     private void saveMemoAndUpdate(View v, boolean asPro) {
 
-        String content = mContentEditText.getText().toString();
-        String citationResource =  mResourceEditText.getText().toString();
+        String content = contentEditText.getText().toString();
+        String citationResource =  citationResourceEditText.getText().toString();
         if (StringUtils.isPresent(content) || UrlUtils.isValidUrl(citationResource)) {
             Calendar cal = Calendar.getInstance();
             //保存処置
-            Memo newMemo = insertMemo(content, cal, citationResource, mPagesEditText.getText().toString(), asPro);
+            Memo newMemo = insertMemo(content, cal, citationResource, pagesEditText.getText().toString(), asPro);
             //ListView に設置
-            mChatLikeListAdapter.notifyDataSetChanged();
+            mainListAdapter.notifyDataSetChanged();
             //Keyboard の消去
             InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
             inputMethodManager.hideSoftInputFromWindow(v.getWindowToken(), 0);
             //EditText 内のデータ消去
-            mContentEditText.getEditableText().clear();
-            mResourceEditText.getEditableText().clear();
-            mPagesEditText.getEditableText().clear();
+            contentEditText.getEditableText().clear();
+            citationResourceEditText.getEditableText().clear();
+            pagesEditText.getEditableText().clear();
 
-            mListView.smoothScrollToPosition(mChatLikeListAdapter.getItemCount() - 1);
+            mainRecyclerView.smoothScrollToPosition(mainListAdapter.getItemCount() - 1);
 
             mainActivityHelper.loadPreview(newMemo);
 
         }
     }
 
-    private DrawerLayout getDrawerLayout() {
-        if (drawerLayout == null) drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
-        return drawerLayout;
+    private DrawerLayout getDrawerManager() {
+        if (drawerManager == null) drawerManager = (DrawerLayout) findViewById(R.id.drawer_layout);
+        return drawerManager;
     }
 
     /****************************************
@@ -238,11 +312,11 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
         //database からすべてを呼び出し、メモに追加する
         List<Memo> memos = memoRepository.loadFromChatTheme(chatTheme);
         if (memos == null) return;
-        mMemos.clear();
-        mMemos.addAll(memos);
-        mChatLikeListAdapter.notifyDataSetChanged();
-        if (mChatLikeListAdapter.getItemCount() > 0) {
-            mListView.smoothScrollToPosition(mChatLikeListAdapter.getItemCount() - 1);
+        this.memos.clear();
+        this.memos.addAll(memos);
+        mainListAdapter.notifyDataSetChanged();
+        if (mainListAdapter.getItemCount() > 0) {
+            mainRecyclerView.smoothScrollToPosition(mainListAdapter.getItemCount() - 1);
         }
     }
 
@@ -253,7 +327,7 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
         memo.setPages(pages);
         memo.setChatTheme(chatTheme);
         if(memoRepository.save(memo)) {
-            mMemos.add(memo);
+            memos.add(memo);
             renewCitationResources();
         }
         return memo;
@@ -261,9 +335,9 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
 
     private void deleteMemo(int position) {
         //memo を消去する
-        Memo memo = mMemos.get(position);
+        Memo memo = memos.get(position);
         if (memoRepository.delete(memo) == 1) {
-            mMemos.remove(memo);
+            memos.remove(memo);
         } else {
             LogUtils.w("something wrong");
         }
@@ -274,40 +348,69 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
      * {@link RecyclerClickable}
      ****************************************/
 
-    @Override
-    public void onRecyclerClicked(View v, int position) {
-        //snackbar をクリックで消す処置
-        if (snackbar != null) snackbar.dismiss();
-        Memo memo = mMemos.get(position);
-        if (memo.isForUrl()) {
-            launchExternalBrowser(memo.getCitationResource());
-        }
-    }
+    private RecyclerClickable getMainOnClickRecyclerListener() {
+        if (mainOnClickRecyclerListener == null) {
+            mainOnClickRecyclerListener = new RecyclerClickable() {
 
-    @Override
-    public void onRecyclerButtonClicked(View v, int position) {
-    }
-
-    @Override
-    public boolean onRecyclerLongClicked(View v, final int position) {
-        // TODO 20160210 copy to clipboard
-        final LinearLayout layout = (LinearLayout) findViewById(R.id.snackbar);
-        //snackbar の表示
-        snackbar = Snackbar.make(layout, "削除しますか", Snackbar.LENGTH_LONG)
-                .setAction("削除", new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        // something
-                        deleteMemo(position);
-                        mChatLikeListAdapter.notifyDataSetChanged();
+                @Override
+                public void onRecyclerClicked(View v, int position) {
+                    //snackbar をクリックで消す処置
+                    if (snackbar != null) snackbar.dismiss();
+                    Memo memo = memos.get(position);
+                    if (memo.isForUrl()) {
+                        launchExternalBrowser(memo.getCitationResource());
                     }
-                });
+                }
 
-        snackbar.show();
-        return true;
+                @Override
+                public void onRecyclerButtonClicked(View v, int position) {
+                }
+
+                @Override
+                public boolean onRecyclerLongClicked(View v, final int position) {
+                    // TODO 20160210 copy to clipboard
+                    final LinearLayout layout = (LinearLayout) findViewById(R.id.snackbar);
+                    //snackbar の表示
+                    snackbar = Snackbar.make(layout, "削除しますか", Snackbar.LENGTH_LONG)
+                            .setAction("削除", new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    // something
+                                    deleteMemo(position);
+                                    mainListAdapter.notifyDataSetChanged();
+                                }
+                            });
+
+                    snackbar.show();
+                    return true;
+                }
+            };
+        }
+        return mainOnClickRecyclerListener;
     }
 
 
+    private RecyclerClickable getSummaryOnClickRecyclerListener() {
+        if (summaryOnClickRecyclerListener == null) {
+            summaryOnClickRecyclerListener = new RecyclerClickable() {
+                @Override
+                public void onRecyclerClicked(View v, int position) {
+
+                }
+
+                @Override
+                public void onRecyclerButtonClicked(View v, int position) {
+
+                }
+
+                @Override
+                public boolean onRecyclerLongClicked(View v, int position) {
+                    return false;
+                }
+            };
+        }
+        return summaryOnClickRecyclerListener;
+    }
     /***********************************************
      * intent handling *
      **********************************************/
@@ -337,21 +440,21 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
      ***********************************************/
 
     public ArrayAdapter<String> getCitationResourceSuggestionAdapter() {
-        if (mCitationResourceSuggestionAdapter == null) {
-            mCitationResourceSuggestionAdapter = new ArrayAdapter<String>(
+        if (citationResourceSuggestionAdapter == null) {
+            citationResourceSuggestionAdapter = new ArrayAdapter<String>(
                     this,
                     android.R.layout.simple_dropdown_item_1line,
-                    citationResouces
+                    citationResources
             );
         }
-        return mCitationResourceSuggestionAdapter;
+        return citationResourceSuggestionAdapter;
     }
 
     public void renewCitationResources() {
-        citationResouces.clear();
+        citationResources.clear();
 
         Observable<String> memoObservable = Observable
-                .from(mMemos)
+                .from(memos)
                 .map(new Func1<Memo, String>() {
 
                     @Override
@@ -360,7 +463,7 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
                     }
                 });
         // 気を利かせて、メモが1つ未満のときはすべての議題を検索して候補を提示する
-        if (mMemos.size() <= 1) {
+        if (memos.size() <= 1) {
             memoObservable = Observable.merge(
                     memoObservable,
                     Observable
@@ -372,12 +475,11 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
                                 }
                             }));
         }
-        citationResouces.addAll(
+        citationResources.addAll(
                 memoObservable
                         .filter(new Func1<String, Boolean>() {
                             @Override
                             public Boolean call(String s) {
-                                LogUtils.i("s: " + s);
                                 return !StringUtils.isEmpty(s) && !UrlUtils.isValidUrl(s.replaceAll("\\s+$", ""));
                             }
                         })
@@ -386,9 +488,9 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
 
         // notifiyDataSetChangedだと正しく更新されない
         getCitationResourceSuggestionAdapter().clear();
-        getCitationResourceSuggestionAdapter().addAll(citationResouces);
+        getCitationResourceSuggestionAdapter().addAll(citationResources);
         getCitationResourceSuggestionAdapter().notifyDataSetChanged();
-        mResourceEditText.setAdapter(getCitationResourceSuggestionAdapter());
+        citationResourceEditText.setAdapter(getCitationResourceSuggestionAdapter());
     }
 
 
@@ -398,10 +500,10 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
     }
 
     private void reloadChatThemeMenu() {
-        if (navigationView == null) {
-            navigationView = (NavigationView) findViewById(R.id.navigation_view);
+        if (drawerLeft == null) {
+            drawerLeft = (NavigationView) findViewById(R.id.navigation_view);
         }
-        final Menu menu = navigationView.getMenu();
+        final Menu menu = drawerLeft.getMenu();
         final MenuItem item = menu.findItem(R.id.menu_group_sub);
 
         item.getSubMenu().clear();
@@ -417,8 +519,9 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
         }
 
         getSupportActionBar().setTitle(chatTheme.getTitle());
+        provideRightDrawerTitle().setText(chatTheme.getTitle());
 
-        navigationView.setNavigationItemSelectedListener(getOnNavigationItemSelectedListener());
+        drawerLeft.setNavigationItemSelectedListener(getOnNavigationItemSelectedListener());
     }
 
     private NavigationView.OnNavigationItemSelectedListener getOnNavigationItemSelectedListener() {
@@ -450,7 +553,7 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
                         }
                         reloadChatTheme(chatTheme);
 
-                        getDrawerLayout().closeDrawers();
+                        getDrawerManager().closeDrawers();
                         return true;
                     } else {
                         LogUtils.w("id: " + item.getItemId());
@@ -473,7 +576,9 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
             chatThemeList.add(chatTheme);
             reloadChatTheme(chatTheme);
 
-            getDrawerLayout().closeDrawers();
+            getDrawerManager().closeDrawers();
+        } else if (StringUtils.isSame(tag, TAG_CONFIRM_DELETE_THEME)) {
+            deleteCurrentChatTheme();
         } else {
             LogUtils.w("Something wrong. " + tag);
         }
@@ -482,7 +587,9 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
     @Override
     public void onAlertDialogCancelled(String tag, Bundle args) {
         if (StringUtils.isSame(tag, TAG_INPUT_NEW_THEME)) {
-            getDrawerLayout().closeDrawers();
+            getDrawerManager().closeDrawers();
+        } else if (StringUtils.isSame(tag, TAG_CONFIRM_DELETE_THEME)) {
+            // nothing to do.
         } else {
             LogUtils.w("Something wrong. " + tag);
         }
@@ -495,5 +602,36 @@ public class MainActivity extends AbsBaseActivity implements RecyclerClickable, 
         loadMemo(ct);
         renewCitationResources();
         mainActivityHelper.loadPreview();
+    }
+
+    private void deleteCurrentChatTheme() {
+        Observable.from(memos)
+                .subscribeOn(Schedulers.io()) // doOnNextを走らせる
+                .doOnNext(new Action1<Memo>() {
+                    @Override
+                    public void call(Memo memo) {
+                        memoRepository.delete(memo);
+                    }
+                })
+                .observeOn(AndroidSchedulers.mainThread()) // メインスレッドでUI操作
+                .doOnCompleted(
+                        new Action0() {
+                            @Override
+                            public void call() {
+                                chatThemeRepository.delete(chatTheme);
+                                getDrawerManager().closeDrawers();
+
+                                ChatTheme first = chatThemeRepository.findFirst();
+                                if (first != null) {
+                                    chatTheme = first;
+                                } else {
+                                    chatTheme = new ChatTheme("最初の議題");
+                                    chatThemeRepository.save(chatTheme);// ここでIDがセットされる
+                                    chatThemeList.add(chatTheme);
+                                }
+                                reloadChatTheme(chatTheme);
+                            }
+                        })
+                .subscribe();
     }
 }

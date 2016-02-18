@@ -65,7 +65,6 @@ public class ChatThemeRepository {
         return 0;
     }
 
-
     public List<ChatTheme> findAll() {
         QueryBuilder<ChatTheme, Integer> qb = chatThemeDao.queryBuilder();
         qb.orderBy(ChatTheme.TIMESTAMP_FIELD, true); // TODO 20160210 by own order
@@ -82,6 +81,26 @@ public class ChatThemeRepository {
             e.printStackTrace();
         }
         return new ArrayList<ChatTheme>();
+    }
+
+    public ChatTheme findFirst() {
+
+        QueryBuilder<ChatTheme, Integer> qb = chatThemeDao.queryBuilder();
+        qb.orderBy(ChatTheme.TIMESTAMP_FIELD, true); // TODO 20160210 by own order
+        qb.limit(1);
+
+        PreparedQuery<ChatTheme> preparedQuery = null;
+        try {
+            preparedQuery = qb.prepare();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        try {
+            return chatThemeDao.queryForFirst(preparedQuery);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public ChatTheme findById(long itemId) {
