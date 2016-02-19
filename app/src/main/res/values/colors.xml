@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="app_primary">#FFDDDDDD</color>
-    <color name="app_primary_dark">#FF999999</color>
+    <color name="app_primary">#FFEBBDEB</color>
+    <color name="app_primary_dark">#FF6B4E71</color>
     <color name="theme_primary">@color/app_primary_accent</color>
-    <color name="app_primary_accent">#FFFF4081</color>
+    <color name="app_primary_accent">#FF6B4E71</color>
 
     <color name="white">#FFFF</color>
     <color name="background_holo_light">#FFEDEDED</color>
