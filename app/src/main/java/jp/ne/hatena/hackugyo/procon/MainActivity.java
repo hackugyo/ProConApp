@@ -109,7 +109,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
         if (toolbar != null) {
             setSupportActionBar(toolbar);
-            toolbar.setNavigationIcon(R.drawable.ic_launcher_default);
+            toolbar.setNavigationIcon(R.drawable.ic_home);
             toolbar.setNavigationOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
