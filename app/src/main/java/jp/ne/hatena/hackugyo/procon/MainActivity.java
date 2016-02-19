@@ -32,6 +32,7 @@ import android.widget.Toast;
 
 import com.jakewharton.rxbinding.view.RxView;
 import com.jakewharton.rxbinding.widget.RxTextView;
+import com.jakewharton.rxbinding.widget.TextViewAfterTextChangeEvent;
 import com.jakewharton.rxbinding.widget.TextViewEditorActionEvent;
 
 import java.util.ArrayList;
@@ -60,6 +61,7 @@ import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.functions.Func1;
+import rx.functions.Func2;
 import rx.schedulers.Schedulers;
 
 public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFragment.Callbacks {
@@ -94,6 +96,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
     private NavigationView.OnNavigationItemSelectedListener onNavigationItemSelectedListener;
     private RecyclerClickable mainOnClickRecyclerListener, summaryOnClickRecyclerListener;
+    private Button addAsProButton, addAsConButon;
 
 
     @Override
@@ -186,8 +189,41 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         citationResourceEditText = (AutoCompleteTextView) findViewById(R.id.editText_from);
         citationResourceEditText.setAdapter(getCitationResourceSuggestionAdapter());
         pagesEditText = (EditText) findViewById(R.id.editText_pages);
-        setupAddAsProButton();
-        setupAddAsConButton();
+        addAsProButton = setupAddAsProButton();
+        addAsConButon = setupAddAsConButton();
+
+        Observable.combineLatest(
+                RxTextView
+                        .afterTextChangeEvents(contentEditText)
+                        .map(
+                                new Func1<TextViewAfterTextChangeEvent, Boolean>() {
+                                    @Override
+                                    public Boolean call(TextViewAfterTextChangeEvent textViewAfterTextChangeEvent) {
+                                        return StringUtils.isPresent(textViewAfterTextChangeEvent.editable().toString());
+                                    }
+                                }),
+                RxTextView
+                        .afterTextChangeEvents(citationResourceEditText)
+                        .map(
+                                new Func1<TextViewAfterTextChangeEvent, Boolean>() {
+                                    @Override
+                                    public Boolean call(TextViewAfterTextChangeEvent textViewAfterTextChangeEvent) {
+                                        return UrlUtils.isValidUrl(textViewAfterTextChangeEvent.editable().toString());
+                                    }
+                                }),
+                new Func2<Boolean, Boolean, Boolean>() {
+                    @Override
+                    public Boolean call(Boolean isContentPresent, Boolean isCitationResourceUrl) {
+                        return isContentPresent || isCitationResourceUrl;
+                    }
+                })
+                .subscribe(new Action1<Boolean>() {
+                    @Override
+                    public void call(Boolean isValid) {
+                        addAsProButton.setEnabled(isValid);
+                        addAsConButon.setEnabled(isValid);
+                    }
+                });
 
         provideRightDrawer();
         provideRightDrawerTitle();

@@ -34,7 +34,6 @@
         android:layout_marginTop="4dp"
         android:id="@+id/button_delete_this_theme"
         android:theme="@style/OtherButton"
-        style="@style/OtherButton"
         android:layout_width="wrap_content"
         android:layout_height="48dp"
         android:paddingLeft="8dp"
