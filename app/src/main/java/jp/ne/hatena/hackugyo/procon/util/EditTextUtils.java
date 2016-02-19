@@ -6,7 +6,9 @@ import android.text.Editable;
 import android.text.InputFilter;
 import android.text.Spanned;
 import android.text.TextWatcher;
+import android.view.KeyEvent;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 
@@ -139,5 +141,11 @@ public class EditTextUtils {
             }
         });
         return editText;
+    }
+
+    public static boolean isDone(int actionId, KeyEvent keyEvent) {
+        return actionId == EditorInfo.IME_ACTION_DONE ||
+                (keyEvent.getKeyCode() == KeyEvent.KEYCODE_ENTER && keyEvent.getAction() == KeyEvent.ACTION_DOWN);
+
     }
 }

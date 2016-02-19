@@ -1,6 +1,5 @@
 package jp.ne.hatena.hackugyo.procon;
 
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
@@ -14,16 +13,12 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.Gravity;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.inputmethod.EditorInfo;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -32,7 +27,6 @@ import android.widget.Toast;
 
 import com.jakewharton.rxbinding.view.RxView;
 import com.jakewharton.rxbinding.widget.RxTextView;
-import com.jakewharton.rxbinding.widget.TextViewAfterTextChangeEvent;
 import com.jakewharton.rxbinding.widget.TextViewEditorActionEvent;
 
 import java.util.ArrayList;
@@ -43,7 +37,6 @@ import jp.ne.hatena.hackugyo.procon.adapter.ChatLikeListAdapter;
 import jp.ne.hatena.hackugyo.procon.io.ImprovedTextCrawler;
 import jp.ne.hatena.hackugyo.procon.model.ChatTheme;
 import jp.ne.hatena.hackugyo.procon.model.ChatThemeRepository;
-import jp.ne.hatena.hackugyo.procon.model.CitationResource;
 import jp.ne.hatena.hackugyo.procon.model.CitationResourceRepository;
 import jp.ne.hatena.hackugyo.procon.model.Memo;
 import jp.ne.hatena.hackugyo.procon.model.MemoRepository;
@@ -52,7 +45,9 @@ import jp.ne.hatena.hackugyo.procon.ui.RecyclerClickable;
 import jp.ne.hatena.hackugyo.procon.ui.fragment.AbsCustomDialogFragment;
 import jp.ne.hatena.hackugyo.procon.ui.fragment.ConfirmDialogFragment;
 import jp.ne.hatena.hackugyo.procon.ui.fragment.InputDialogFragment;
+import jp.ne.hatena.hackugyo.procon.ui.widget.KeyboardClosingDrawerListener;
 import jp.ne.hatena.hackugyo.procon.ui.widget.RecyclerViewEmptySupport;
+import jp.ne.hatena.hackugyo.procon.util.EditTextUtils;
 import jp.ne.hatena.hackugyo.procon.util.LogUtils;
 import jp.ne.hatena.hackugyo.procon.util.StringUtils;
 import jp.ne.hatena.hackugyo.procon.util.UrlUtils;
@@ -60,8 +55,6 @@ import rx.Observable;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action0;
 import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.functions.Func2;
 import rx.schedulers.Schedulers;
 
 public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFragment.Callbacks {
@@ -69,10 +62,10 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     public static final String TAG_INPUT_NEW_THEME = "MainActivity.TAG_INPUT_NEW_THEME";
     private static final String TAG_CONFIRM_DELETE_THEME = "MainActivity.TAG_CONFIRM_DELETE_THEME";
 
-    private EditText contentEditText;
-    private EditText pagesEditText;
-    private AutoCompleteTextView citationResourceEditText;
+    // メイン部分のView管理
+    MainActivityViewProvider viewProvider;
     private ArrayAdapter<String> citationResourceSuggestionAdapter;
+    // Drawer内部のView
     private NavigationView drawerLeft;
     private DrawerLayout drawerManager;
     private NavigationView drawerRight;
@@ -96,7 +89,6 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
     private NavigationView.OnNavigationItemSelectedListener onNavigationItemSelectedListener;
     private RecyclerClickable mainOnClickRecyclerListener, summaryOnClickRecyclerListener;
-    private Button addAsProButton, addAsConButon;
 
 
     @Override
@@ -185,76 +177,13 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
     private void setupViews() {
 
-        contentEditText = (EditText) findViewById(R.id.editText);
-        citationResourceEditText = (AutoCompleteTextView) findViewById(R.id.editText_from);
-        citationResourceEditText.setAdapter(getCitationResourceSuggestionAdapter());
-        pagesEditText = (EditText) findViewById(R.id.editText_pages);
-        addAsProButton = setupAddAsProButton();
-        addAsConButon = setupAddAsConButton();
-
-        Observable.combineLatest(
-                RxTextView
-                        .afterTextChangeEvents(contentEditText)
-                        .map(
-                                new Func1<TextViewAfterTextChangeEvent, Boolean>() {
-                                    @Override
-                                    public Boolean call(TextViewAfterTextChangeEvent textViewAfterTextChangeEvent) {
-                                        return StringUtils.isPresent(textViewAfterTextChangeEvent.editable().toString());
-                                    }
-                                }),
-                RxTextView
-                        .afterTextChangeEvents(citationResourceEditText)
-                        .map(
-                                new Func1<TextViewAfterTextChangeEvent, Boolean>() {
-                                    @Override
-                                    public Boolean call(TextViewAfterTextChangeEvent textViewAfterTextChangeEvent) {
-                                        return UrlUtils.isValidUrl(textViewAfterTextChangeEvent.editable().toString());
-                                    }
-                                }),
-                new Func2<Boolean, Boolean, Boolean>() {
-                    @Override
-                    public Boolean call(Boolean isContentPresent, Boolean isCitationResourceUrl) {
-                        return isContentPresent || isCitationResourceUrl;
-                    }
-                })
-                .subscribe(new Action1<Boolean>() {
-                    @Override
-                    public void call(Boolean isValid) {
-                        addAsProButton.setEnabled(isValid);
-                        addAsConButon.setEnabled(isValid);
-                    }
-                });
-
+        viewProvider = new MainActivityViewProvider(this, getCitationResourceSuggestionAdapter(), setupAddAsProButton(), setupAddAsConButton());
         provideRightDrawer();
         provideRightDrawerTitle();
         provideThemeDeleteButton();
         provideRightDrawerRecyclerView();
 
-        getDrawerManager().setDrawerListener(new DrawerLayout.DrawerListener() {
-            @Override
-            public void onDrawerSlide(View drawerView, float slideOffset) {
-
-            }
-
-            @Override
-            public void onDrawerOpened(View drawerView) {
-                //Keyboard の消去
-                InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                inputMethodManager.hideSoftInputFromWindow(drawerView.getWindowToken(), 0);
-            }
-
-            @Override
-            public void onDrawerClosed(View drawerView) {
-                //Keyboard の消去
-                InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                inputMethodManager.hideSoftInputFromWindow(drawerView.getWindowToken(), 0);
-            }
-
-            @Override
-            public void onDrawerStateChanged(int newState) {
-
-            }
-        });
+        getDrawerManager().setDrawerListener(new KeyboardClosingDrawerListener());
 
         mainRecyclerView = (RecyclerViewEmptySupport) findViewById(R.id.listView);
         mainListAdapter = new ChatLikeListAdapter(this, memos, getMainOnClickRecyclerListener());
@@ -266,7 +195,6 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     }
 
     private Button setupAddAsProButton() {
-
         //Button の処理
         View.OnClickListener listener = new View.
                 OnClickListener() {
@@ -284,7 +212,6 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     }
 
     private Button setupAddAsConButton() {
-
         //Button の処理
         View.OnClickListener listener = new View.
                 OnClickListener() {
@@ -314,14 +241,8 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                     new Action1<TextViewEditorActionEvent>() {
                         @Override
                         public void call(TextViewEditorActionEvent event) {
-                            if (
-                                    event.actionId() == EditorInfo.IME_ACTION_DONE ||
-                                            (event.keyEvent().getKeyCode() == KeyEvent.KEYCODE_ENTER && event.keyEvent().getAction() == KeyEvent.ACTION_DOWN)
-                                    ) {
-                                //Keyboard の消去
-                                InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                                inputMethodManager.hideSoftInputFromWindow(event.view().getWindowToken(), 0);
-
+                            if (EditTextUtils.isDone(event.actionId(), event.keyEvent())) {
+                                EditTextUtils.closeKeyboard(MainActivity.this, event.view());
                                 if (editChatTheme(event.view().getText().toString(), false)) {
                                     showSingleToast(R.string.toast_theme_name_edited, Toast.LENGTH_SHORT);
                                 }
@@ -358,7 +279,6 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
     private RecyclerView provideRightDrawerRecyclerView() {
         if (summaryRecyclerView == null) {
-
             View container = LayoutInflater.from(this).inflate(R.layout.layout_navidation_content_right, null, false);
             provideRightDrawer().addHeaderView(container);
             summaryRecyclerView = (RecyclerViewEmptySupport) container.findViewById(R.id.listView_summary);
@@ -371,31 +291,6 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
         }
         return summaryRecyclerView;
-    }
-
-    private void saveMemoAndUpdate(View v, boolean asPro) {
-
-        String content = contentEditText.getText().toString();
-        String citationResource =  citationResourceEditText.getText().toString();
-        if (StringUtils.isPresent(content) || UrlUtils.isValidUrl(citationResource)) {
-            Calendar cal = Calendar.getInstance();
-            //保存処置
-            Memo newMemo = insertMemo(content, cal, citationResource, pagesEditText.getText().toString(), asPro);
-            //ListView に設置
-            mainListAdapter.notifyDataSetChanged();
-            //Keyboard の消去
-            InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-            inputMethodManager.hideSoftInputFromWindow(v.getWindowToken(), 0);
-            //EditText 内のデータ消去
-            contentEditText.getEditableText().clear();
-            citationResourceEditText.getEditableText().clear();
-            pagesEditText.getEditableText().clear();
-
-            mainRecyclerView.smoothScrollToPosition(mainListAdapter.getItemCount() - 1);
-
-            mainActivityHelper.loadPreview(newMemo);
-
-        }
     }
 
     private DrawerLayout getDrawerManager() {
@@ -416,6 +311,24 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         mainListAdapter.notifyDataSetChanged();
         if (mainListAdapter.getItemCount() > 0) {
             mainRecyclerView.smoothScrollToPosition(mainListAdapter.getItemCount() - 1);
+        }
+    }
+
+    private void saveMemoAndUpdate(View v, boolean asPro) {
+        String content = viewProvider.contentEditText.getText().toString();
+        String citationResource =  viewProvider.citationResourceEditText.getText().toString();
+        if (StringUtils.isPresent(content) || UrlUtils.isValidUrl(citationResource)) {
+            Calendar cal = Calendar.getInstance();
+            //保存処置
+            Memo newMemo = insertMemo(content, cal, citationResource, viewProvider.pagesEditText.getText().toString(), asPro);
+            //ListView に設置
+            mainListAdapter.notifyDataSetChanged();
+            //Keyboard の消去，EditText 内のデータ消去
+            viewProvider.resetInputTexts(v);
+
+            mainRecyclerView.smoothScrollToPosition(mainListAdapter.getItemCount() - 1);
+
+            mainActivityHelper.loadPreview(newMemo);
         }
     }
 
@@ -538,6 +451,13 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
      * データの更新 *
      ***********************************************/
 
+    private ChatTheme createInitialChatTheme() {
+        ChatTheme chatTheme = new ChatTheme("最初の議題");
+        chatThemeRepository.save(chatTheme);// ここでIDがセットされる
+        chatThemeList.add(chatTheme);
+        return chatTheme;
+    }
+
     public ArrayAdapter<String> getCitationResourceSuggestionAdapter() {
         if (citationResourceSuggestionAdapter == null) {
             citationResourceSuggestionAdapter = new ArrayAdapter<String>(
@@ -550,46 +470,11 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     }
 
     public void renewCitationResources() {
+        // データの更新
         citationResources.clear();
-
-        Observable<String> memoObservable = Observable
-                .from(memos)
-                .map(new Func1<Memo, String>() {
-
-                    @Override
-                    public String call(Memo memo) {
-                        return memo.getCitationResource();
-                    }
-                });
-        // 気を利かせて、メモが1つ未満のときはすべての議題を検索して候補を提示する
-        if (memos.size() <= 1) {
-            memoObservable = Observable.merge(
-                    memoObservable,
-                    Observable
-                            .from(citationResourceRepository.findAll())
-                            .map(new Func1<CitationResource, String>() {
-                                @Override
-                                public String call(CitationResource citationResource) {
-                                    return citationResource.getName();
-                                }
-                            }));
-        }
-        citationResources.addAll(
-                memoObservable
-                        .filter(new Func1<String, Boolean>() {
-                            @Override
-                            public Boolean call(String s) {
-                                return !StringUtils.isEmpty(s) && !UrlUtils.isValidUrl(s.replaceAll("\\s+$", ""));
-                            }
-                        })
-                        .distinct()
-                        .toList().toBlocking().single());
-
-        // notifiyDataSetChangedだと正しく更新されない
-        getCitationResourceSuggestionAdapter().clear();
-        getCitationResourceSuggestionAdapter().addAll(citationResources);
-        getCitationResourceSuggestionAdapter().notifyDataSetChanged();
-        citationResourceEditText.setAdapter(getCitationResourceSuggestionAdapter());
+        citationResources.addAll(MainActivityHelper.createNewCitationResources(memos, citationResourceRepository));
+        // 表示の更新
+        viewProvider.resetCitationResourceSuggestionAdapter(citationResources);
     }
 
 
@@ -607,11 +492,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
         item.getSubMenu().clear();
 
-        if (chatThemeList.size() == 0) {
-            chatTheme = new ChatTheme("最初の議題");
-            chatThemeRepository.save(chatTheme);// ここでIDがセットされる
-            chatThemeList.add(chatTheme);
-        }
+        if (chatThemeList.size() == 0) chatTheme = createInitialChatTheme();
         for (ChatTheme theme : chatThemeList) {
             MenuItem add = item.getSubMenu().add(R.id.menu_group_sub_child, theme.getId().intValue(), Menu.NONE, theme.getTitle());
             add.setChecked(theme.getId() == chatTheme.getId());
@@ -721,13 +602,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                                 getDrawerManager().closeDrawers();
 
                                 ChatTheme first = chatThemeRepository.findFirst();
-                                if (first != null) {
-                                    chatTheme = first;
-                                } else {
-                                    chatTheme = new ChatTheme("最初の議題");
-                                    chatThemeRepository.save(chatTheme);// ここでIDがセットされる
-                                    chatThemeList.add(chatTheme);
-                                }
+                                chatTheme = (first == null ? createInitialChatTheme() : first);
                                 reloadChatTheme(chatTheme);
                             }
                         })
