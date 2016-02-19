@@ -1,7 +1,6 @@
 package jp.ne.hatena.hackugyo.procon;
 
 import android.os.Handler;
-import android.support.v4.widget.DrawerLayout;
 import android.support.v7.widget.RecyclerView;
 import android.util.Pair;
 
@@ -21,6 +20,7 @@ import jp.ne.hatena.hackugyo.procon.model.CitationResource;
 import jp.ne.hatena.hackugyo.procon.model.CitationResourceRepository;
 import jp.ne.hatena.hackugyo.procon.model.Memo;
 import jp.ne.hatena.hackugyo.procon.util.ArrayUtils;
+import jp.ne.hatena.hackugyo.procon.util.LogUtils;
 import jp.ne.hatena.hackugyo.procon.util.StringUtils;
 import jp.ne.hatena.hackugyo.procon.util.UrlUtils;
 import rx.Observable;
@@ -46,15 +46,15 @@ public class MainActivityHelper {
         this.handler = new Handler();
     }
 
-    void loadPreview() {
-        loadPreview(Observable.from(ArrayUtils.reverse(this.memos)));
+    void loadPreviewAsync() {
+        loadPreviewAsync(Observable.from(ArrayUtils.reverse(this.memos)));
     }
 
-    void loadPreview(Memo memo) {
-        loadPreview(Observable.just(memo));
+    void loadPreviewAsync(Memo memo) {
+        loadPreviewAsync(Observable.just(memo));
     }
 
-    void loadPreview(Observable<Memo> memoObservable) {
+    void loadPreviewAsync(Observable<Memo> memoObservable) {
         List<Memo> toBeLoaded = memoObservable
                 .observeOn(Schedulers.io())
                 .filter(new Func1<Memo, Boolean>() {
@@ -70,7 +70,7 @@ public class MainActivityHelper {
         for (Memo memo : toBeLoaded) {
             observables.add(
                     Observable.just(memo)
-                            .observeOn(Schedulers.io())
+                            .subscribeOn(Schedulers.io())
                             .map(new Func1<Memo, Pair<Memo, SourceContent>>() {
                                 @Override
                                 public Pair<Memo, SourceContent> call(Memo memo) {
@@ -78,7 +78,7 @@ public class MainActivityHelper {
                                     SourceContent sourceContent = textCrawler.extractFrom(url, TextCrawler.NONE);
                                     String finalUrl = sourceContent.getFinalUrl();
                                     if (UrlUtils.isTwitterUrl(finalUrl)) { // 特定URLポスト以外のTwitterドメインには未対応
-                                        sourceContent = convertHtml(sourceContent.getHtmlCode());
+                                        sourceContent = convertTwitterHtml(sourceContent.getHtmlCode());
                                         sourceContent.setFinalUrl(finalUrl);
                                     }
                                     return Pair.create(memo, sourceContent);
@@ -89,8 +89,8 @@ public class MainActivityHelper {
 
         Observable parallel = Observable.merge(observables);
         parallel
-                .observeOn(Schedulers.io())
-                .subscribeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread()) // #subscribe(Observer o)のoがどこで動くか．
                 .subscribe(new Action1<Pair<Memo, SourceContent>>() {
                     @Override
                     public void call(Pair<Memo, SourceContent> pair) {
@@ -133,7 +133,7 @@ public class MainActivityHelper {
         }
     }
 
-    private SourceContent convertHtml(String html) {
+    private SourceContent convertTwitterHtml(String html) {
 
         SourceContent sourceContent = new SourceContent();
         Document document = Jsoup.parse(html);
@@ -157,32 +157,43 @@ public class MainActivityHelper {
         sourceContent.setImages(imageUrlList);
 
         // 本文
-        Elements select = document.getElementsByClass("dir-ltr");
+        Elements select = document.select("div[class=dir-ltr]"); //document.getElementsByClass("dir-ltr");
 
         if (select.size() != 0) {
+            LogUtils.d(select.outerHtml());
+            Element target = Observable.from(select)
+                    .lastOrDefault(null, new Func1<Element, Boolean>() {
+                        @Override
+                        public Boolean call(Element element) {
+                            return StringUtils.isPresent(element.ownText());
+                        }
+                    })
+                    .toBlocking()
+                    .single();
+            if (target != null) {
+                List<String> single =
+                        Observable.just(target.ownText())
+                                .concatWith(
+                                        Observable.from(target.children())
+                                                .map(new Func1<Element, String>() {
+                                                    @Override
+                                                    public String call(Element child) {
+                                                        if (child.attr("data-query-source", "hashtag_click") != null) {
+                                                            return child.ownText(); // ハッシュタグ
+                                                        }
 
-            List<String> single =
-                    Observable.just(select.first().ownText())
-                            .concatWith(
-                                    Observable.from(select.first().children())
-                                            .map(new Func1<Element, String>() {
-                                                @Override
-                                                public String call(Element child) {
-                                                    if (child.attr("data-query-source", "hashtag_click") != null) {
-                                                        return child.ownText(); // ハッシュタグ
+                                                        String url = child.attr("data-expanded-url");
+                                                        if (StringUtils.isEmpty(url)) {
+                                                            url = child.attr("data-url");
+                                                        }
+                                                        return url;
                                                     }
-
-                                                    String url = child.attr("data-expanded-url");
-                                                    if (StringUtils.isEmpty(url)) {
-                                                        url = child.attr("data-url");
-                                                    }
-                                                    return url;
-                                                }
-                                            }))
-                            .toList()
-                            .toBlocking()
-                            .single();
-            sourceContent.setDescription(StringUtils.join(single, StringUtils.getCRLF()));
+                                                }))
+                                .toList()
+                                .toBlocking()
+                                .single();
+                sourceContent.setDescription(StringUtils.join(single, StringUtils.getCRLF()));
+            }
         }
         return sourceContent;
     }

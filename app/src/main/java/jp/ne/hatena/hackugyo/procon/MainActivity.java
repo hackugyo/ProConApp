@@ -52,6 +52,7 @@ import jp.ne.hatena.hackugyo.procon.util.LogUtils;
 import jp.ne.hatena.hackugyo.procon.util.StringUtils;
 import jp.ne.hatena.hackugyo.procon.util.UrlUtils;
 import rx.Observable;
+import rx.Subscriber;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action0;
 import rx.functions.Action1;
@@ -61,6 +62,8 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
     public static final String TAG_INPUT_NEW_THEME = "MainActivity.TAG_INPUT_NEW_THEME";
     private static final String TAG_CONFIRM_DELETE_THEME = "MainActivity.TAG_CONFIRM_DELETE_THEME";
+
+    private final MainActivity self = this;
 
     // メイン部分のView管理
     MainActivityViewProvider viewProvider;
@@ -120,12 +123,22 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         reloadChatThemeMenu();
 
         //memo の表示
-        loadMemo(chatTheme);
-        renewCitationResources();
-        mainActivityHelper = new MainActivityHelper(
-                new ImprovedTextCrawler(AppApplication.provideOkHttpClient(this)),
-                mainListAdapter,
-                memos);
+        getLoadMemoObservable()
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                        new Action1<List<Memo>>() {
+                            @Override
+                            public void call(List<Memo> memos) {
+                                renewCitationResources();
+                                mainActivityHelper = new MainActivityHelper(
+                                        new ImprovedTextCrawler(AppApplication.provideOkHttpClient(self)),
+                                        mainListAdapter,
+                                        self.memos);
+                                mainActivityHelper.loadPreviewAsync();
+                            }
+
+                        }
+                );
     }
 
     @Override
@@ -143,7 +156,6 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         memoRepository.onResume(this);
         chatThemeRepository.onResume(this);
         citationResourceRepository.onResume(this);
-        mainActivityHelper.loadPreview();
     }
 
     @Override
@@ -302,16 +314,35 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
      * DB Access
      ****************************************/
 
-    private void loadMemo(ChatTheme chatTheme) {
-        //database からすべてを呼び出し、メモに追加する
-        List<Memo> memos = memoRepository.loadFromChatTheme(chatTheme);
-        if (memos == null) return;
-        this.memos.clear();
-        this.memos.addAll(memos);
-        mainListAdapter.notifyDataSetChanged();
-        if (mainListAdapter.getItemCount() > 0) {
-            mainRecyclerView.smoothScrollToPosition(mainListAdapter.getItemCount() - 1);
-        }
+    private Observable<List<Memo>> getLoadMemoObservable() {
+        Observable<List<Memo>> listObservable = Observable.create(
+                new Observable.OnSubscribe<List<Memo>>() {
+                    @Override
+                    public void call(Subscriber<? super List<Memo>> subscriber) {
+                        //database からすべてを呼び出し、メモに追加する
+                        List<Memo> memos = memoRepository.loadFromChatTheme(MainActivity.this.chatTheme);
+                        if (memos == null) {
+                            subscriber.onNext(new ArrayList<Memo>());
+                        } else {
+                            subscriber.onNext(memos);
+                        }
+                        subscriber.onCompleted();
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnNext(new Action1<List<Memo>>() {
+                    @Override
+                    public void call(List<Memo> memos) {
+                        self.memos.clear();
+                        self.memos.addAll(memos);
+                        mainListAdapter.notifyDataSetChanged();
+                        if (mainListAdapter.getItemCount() > 0) {
+                            mainRecyclerView.smoothScrollToPosition(mainListAdapter.getItemCount() - 1);
+                        }
+                    }
+                });
+        return listObservable;
     }
 
     private void saveMemoAndUpdate(View v, boolean asPro) {
@@ -328,7 +359,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
             mainRecyclerView.smoothScrollToPosition(mainListAdapter.getItemCount() - 1);
 
-            mainActivityHelper.loadPreview(newMemo);
+            mainActivityHelper.loadPreviewAsync(newMemo);
         }
     }
 
@@ -452,7 +483,11 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
      ***********************************************/
 
     private ChatTheme createInitialChatTheme() {
-        ChatTheme chatTheme = new ChatTheme("最初の議題");
+        return createInitialChatTheme("最初の議題");
+    }
+
+    private ChatTheme createInitialChatTheme(String title) {
+        ChatTheme chatTheme = new ChatTheme(title);
         chatThemeRepository.save(chatTheme);// ここでIDがセットされる
         chatThemeList.add(chatTheme);
         return chatTheme;
@@ -512,15 +547,17 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                 public boolean onNavigationItemSelected(MenuItem item) {
                     if (item.getGroupId() == R.id.menu_group_main) {
                         switch (item.getItemId()) {
+                            case R.id.menu_home:
+                                // TODO 20160216 この画面へ
+                                return true;
                             default:
                                 // TODO 20160216 なんとかする
-                                return false;
+                                return true; // なおここでfalseを返すと選択されなかったことになるもよう
                         }
                     } else if (item.getItemId() == R.id.menu_add_new_theme) {
                         InputDialogFragment f = InputDialogFragment.newInstance(MainActivity.this, null, "議題設定", null);
                         showDialogFragment(f, TAG_INPUT_NEW_THEME);
                         return true;
-
                     } else if (item.getGroupId() == R.id.menu_group_sub_child) {
                         ChatTheme byId = chatThemeRepository.findById(item.getItemId());
                         LogUtils.d("id: " + item.getItemId() +", chatTheme: " + byId);
@@ -531,7 +568,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                             chatThemeRepository.save(chatTheme);// ここでIDがセットされる
                             chatThemeList.add(chatTheme);
                         }
-                        reloadChatTheme(chatTheme);
+                        reloadChatThemeAsync();
 
                         getDrawerManager().closeDrawers();
                         return true;
@@ -550,15 +587,12 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     public void onAlertDialogClicked(String tag, Bundle args, int which) {
         if (StringUtils.isSame(tag, TAG_INPUT_NEW_THEME)) {
             String newTheme = args.getString(InputDialogFragment.RESULT, "新しい議題");
-
-            chatTheme = new ChatTheme(newTheme);
-            chatThemeRepository.save(chatTheme);// ここでIDがセットされる
-            chatThemeList.add(chatTheme);
-            reloadChatTheme(chatTheme);
+            chatTheme = createInitialChatTheme(newTheme);
+            reloadChatThemeAsync();
 
             getDrawerManager().closeDrawers();
         } else if (StringUtils.isSame(tag, TAG_CONFIRM_DELETE_THEME)) {
-            deleteCurrentChatTheme();
+            deleteCurrentChatThemeAsync();
         } else {
             LogUtils.w("Something wrong. " + tag);
         }
@@ -576,15 +610,26 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
     }
 
-    private void reloadChatTheme(ChatTheme ct) {
+    /**
+     * {@link #chatTheme} の変更を反映します。
+     */
+    private void reloadChatThemeAsync() {
         reloadChatThemeList();
         reloadChatThemeMenu();
-        loadMemo(ct);
-        renewCitationResources();
-        mainActivityHelper.loadPreview();
+        getLoadMemoObservable()
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                        new Action1<List<Memo>>() {
+                            @Override
+                            public void call(List<Memo> memos) {
+                                renewCitationResources();
+                                mainActivityHelper.loadPreviewAsync();
+                            }
+                        }
+                );
     }
 
-    private void deleteCurrentChatTheme() {
+    private void deleteCurrentChatThemeAsync() {
         Observable.from(memos)
                 .subscribeOn(Schedulers.io()) // doOnNextを走らせる
                 .doOnNext(new Action1<Memo>() {
@@ -603,7 +648,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
                                 ChatTheme first = chatThemeRepository.findFirst();
                                 chatTheme = (first == null ? createInitialChatTheme() : first);
-                                reloadChatTheme(chatTheme);
+                                reloadChatThemeAsync();
                             }
                         })
                 .subscribe();
