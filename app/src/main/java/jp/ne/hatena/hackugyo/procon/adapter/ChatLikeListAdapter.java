@@ -13,7 +13,6 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.leocardz.link.preview.library.SourceContent;
-import com.leocardz.link.preview.library.TextCrawler;
 import com.squareup.picasso.Picasso;
 
 import java.util.List;
@@ -34,14 +33,12 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
     private static final int VIEW_TYPE_URL_PREVIEW = 1;
     private final List<Memo> mMemos;
     private final RecyclerClickable mOnClickListener;
-    private final TextCrawler textCrawler;
     private Activity context;
 
     public ChatLikeListAdapter(Activity context, List<Memo> memos, RecyclerClickable onClickListener) {
         this.context = context;
         this.mMemos = memos;
         mOnClickListener = onClickListener;
-        textCrawler = new TextCrawler();
     }
 
 

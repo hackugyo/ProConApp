@@ -35,8 +35,34 @@
         android:layout_height="match_parent"
         android:layout_gravity="right"
         android:background="@android:color/white"
-        android:fitsSystemWindows="true"
-        app:headerLayout="@layout/layout_navigation_header_right"
-        />
+        android:fitsSystemWindows="false"
+        >
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            >
+            <include layout="@layout/layout_navigation_header_right" />
+            <jp.ne.hatena.hackugyo.procon.ui.widget.RecyclerViewEmptySupport
+                android:id="@+id/listView_summary"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:paddingBottom="@dimen/activity_vertical_margin"
+                android:paddingTop="@dimen/activity_vertical_margin"
+                android:clipToPadding="false"
+                android:divider="#00000000"
+                app:layout_behavior="@string/appbar_scrolling_view_behavior"
+                android:transcriptMode="alwaysScroll"
+                />
+            <TextView
+                android:id="@+id/summary_empty"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="なにか1つメモを作ってみましょう"
+                />
+        </LinearLayout>
+
+    </android.support.design.widget.NavigationView>
 </android.support.v4.widget.DrawerLayout>
 

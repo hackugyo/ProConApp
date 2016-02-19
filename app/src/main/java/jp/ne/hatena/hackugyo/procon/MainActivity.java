@@ -13,7 +13,6 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.Gravity;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -34,6 +33,7 @@ import java.util.Calendar;
 import java.util.List;
 
 import jp.ne.hatena.hackugyo.procon.adapter.ChatLikeListAdapter;
+import jp.ne.hatena.hackugyo.procon.adapter.SummaryListAdapter;
 import jp.ne.hatena.hackugyo.procon.io.ImprovedTextCrawler;
 import jp.ne.hatena.hackugyo.procon.model.ChatTheme;
 import jp.ne.hatena.hackugyo.procon.model.ChatThemeRepository;
@@ -77,6 +77,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
     RecyclerViewEmptySupport mainRecyclerView, summaryRecyclerView;
     ChatLikeListAdapter mainListAdapter;
+    SummaryListAdapter summaryListAdapter;
     Snackbar snackbar;
 
     private ChatTheme chatTheme;
@@ -203,7 +204,6 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         LinearLayoutManager llm = new LinearLayoutManager(this);
         llm.setOrientation(LinearLayoutManager.VERTICAL);
         mainRecyclerView.setLayoutManager(llm);
-
     }
 
     private Button setupAddAsProButton() {
@@ -247,7 +247,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
     private TextView provideRightDrawerTitle() {
         if (themeEditText == null) {
-            themeEditText = (EditText) provideRightDrawer().getHeaderView(0).findViewById(R.id.navigation_header_right_title);
+            themeEditText = (EditText) provideRightDrawer().findViewById(R.id.navigation_header_right_title);
             Observable<TextViewEditorActionEvent> textViewEditorActionEventObservable = RxTextView.editorActionEvents(themeEditText);
             textViewEditorActionEventObservable.subscribe(
                     new Action1<TextViewEditorActionEvent>() {
@@ -277,7 +277,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
     private AppCompatButton provideThemeDeleteButton() {
         if (themeDeleteButton == null) {
-            themeDeleteButton = (AppCompatButton) provideRightDrawer().getHeaderView(0).findViewById(R.id.button_delete_this_theme);
+            themeDeleteButton = (AppCompatButton) provideRightDrawer().findViewById(R.id.button_delete_this_theme);
             themeDeleteButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -289,13 +289,16 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         return themeDeleteButton;
     }
 
+    /**
+     * @see <a href="http://stackoverflow.com/a/33291107">参考リンク</a>
+     * @return
+     */
     private RecyclerView provideRightDrawerRecyclerView() {
         if (summaryRecyclerView == null) {
-            View container = LayoutInflater.from(this).inflate(R.layout.layout_navidation_content_right, null, false);
-            provideRightDrawer().addHeaderView(container);
+            View container = provideRightDrawer();
             summaryRecyclerView = (RecyclerViewEmptySupport) container.findViewById(R.id.listView_summary);
-            mainListAdapter = new ChatLikeListAdapter(this, memos, getMainOnClickRecyclerListener());
-            summaryRecyclerView.setAdapter(mainListAdapter);
+            summaryListAdapter = new SummaryListAdapter(this, getSummaryOnClickRecyclerListener());
+            summaryRecyclerView.setAdapter(summaryListAdapter);
             LinearLayoutManager llm = new LinearLayoutManager(this);
             llm.setOrientation(LinearLayoutManager.VERTICAL);
             summaryRecyclerView.setLayoutManager(llm);
@@ -340,6 +343,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                         if (mainListAdapter.getItemCount() > 0) {
                             mainRecyclerView.smoothScrollToPosition(mainListAdapter.getItemCount() - 1);
                         }
+                        summaryListAdapter.reloadMemos(self.memos);
                     }
                 });
         return listObservable;
@@ -372,6 +376,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         if(memoRepository.save(memo)) {
             memos.add(memo);
             renewCitationResources();
+            summaryListAdapter.reloadMemos(self.memos);
         }
         return memo;
     }
@@ -381,6 +386,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         Memo memo = memos.get(position);
         if (memoRepository.delete(memo) == 1) {
             memos.remove(memo);
+            summaryListAdapter.reloadMemos(self.memos);
         } else {
             LogUtils.w("something wrong");
         }
