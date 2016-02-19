@@ -5,7 +5,12 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_gravity="right"
-    android:orientation="horizontal">
+    android:layout_marginTop="-4dp"
+    android:paddingLeft="8dp"
+    android:paddingRight="8dp"
+    android:orientation="horizontal"
+    tools:showIn="@layout/list_item_chat_message"
+    >
 
     <TextView
         android:layout_width="wrap_content"
@@ -17,7 +22,7 @@
         android:maxLines="1"
         android:text="From:"
         />
-    <TextView
+    <android.support.v7.widget.AppCompatTextView
         android:id="@+id/message_source"
         android:layout_width="0dp"
         android:layout_weight="1"
@@ -27,6 +32,7 @@
         android:textSize="12sp"
         android:maxLines="1"
         android:ellipsize="end"
+        android:scrollHorizontally="true"
         android:textColor="@android:color/black"
         tools:text="Benson 2005"
         />
@@ -39,7 +45,8 @@
         android:textSize="12sp"
         android:textColor="@android:color/darker_gray"
         android:maxLines="1"
-        tools:text="pp:"
+        android:scrollHorizontally="true"
+        tools:text="pp."
         android:layout_marginLeft="4dp"
         />
     <TextView

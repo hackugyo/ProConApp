@@ -4,26 +4,41 @@ import com.leocardz.link.preview.library.Regex;
 import com.leocardz.link.preview.library.SearchUrls;
 import com.leocardz.link.preview.library.SourceContent;
 import com.leocardz.link.preview.library.TextCrawler;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.OkUrlFactory;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.Response;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.MalformedURLException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+
+import jp.ne.hatena.hackugyo.procon.util.LogUtils;
 
 /**
  * Created by kwatanabe on 16/02/12.
  * @see {@link com.leocardz.link.preview.library.TextCrawler}
  */
 public class ImprovedTextCrawler {
+
+    private final OkHttpClient okHttpClient;
+    private final OkUrlFactory okUrlFactory;
+
+    public ImprovedTextCrawler(OkHttpClient okHttpClient) {
+        this.okHttpClient = okHttpClient;
+        this.okUrlFactory = new OkUrlFactory(okHttpClient);
+    }
 
     public SourceContent extractFrom(String url, int imageQuantity) {
         SourceContent sourceContent = new SourceContent();
@@ -43,7 +58,7 @@ public class ImprovedTextCrawler {
                 sourceContent.setDescription("");
             } else {
                 try {
-                    Document finalLinkSet = Jsoup.connect(sourceContent.getFinalUrl()).userAgent("Mozilla").get();
+                    Document finalLinkSet = connect(sourceContent.getFinalUrl(), "Mozilla");
                     sourceContent.setHtmlCode(TextCrawler.extendedTrim(finalLinkSet.toString()));
                     HashMap<String, String> metaTags = getMetaTags(sourceContent.getHtmlCode());
                     sourceContent.setMetaTags(metaTags);
@@ -88,28 +103,33 @@ public class ImprovedTextCrawler {
         if(!shortURL.startsWith("http://") && !shortURL.startsWith("https://")) {
             return "";
         } else {
-            URLConnection urlConn = this.connectURL(shortURL);
+            HttpURLConnection urlConn = this.connectURL(shortURL);
             urlConn.getHeaderFields();
             String finalResult = urlConn.getURL().toString();
             urlConn = this.connectURL(finalResult);
             urlConn.getHeaderFields();
 
+            // 転送先を追いかける
             for(shortURL = urlConn.getURL().toString(); !shortURL.equals(finalResult); finalResult = this.unshortenUrl(finalResult)) {
-                ;
+                // LogUtils.i("転送：" + shortURL);
             }
-
+            // リークするので閉じる
+            try {
+                InputStream inputStream = getInputStream(urlConn);
+                inputStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             return finalResult;
         }
     }
 
-    private URLConnection connectURL(String strURL) {
-        URLConnection conn = null;
+    private HttpURLConnection connectURL(String strURL) {
+        HttpURLConnection conn = null;
 
         try {
             URL ioe = new URL(strURL);
-            conn = ioe.openConnection();
-        } catch (MalformedURLException var4) {
-            System.out.println("Please input a valid URL");
+            conn = okUrlFactory.open(ioe);
         } catch (IOException var5) {
             System.out.println("Can not connect to the URL");
         }
@@ -255,4 +275,40 @@ public class ImprovedTextCrawler {
         String result = Regex.pregMatch(content, "content=\"(.*?)\"", 1);
         return this.htmlDecode(result);
     }
+
+    private Document connect(String finalUrl, String userAgentString) throws IOException {
+        Response response = this.okHttpClient.newCall(
+                new Request.Builder().url(finalUrl).get().header("User-Agent", userAgentString).build()
+        ).execute();
+        InputStream inputStream = response.body().byteStream();
+        String forceEncode = null; // default or "UTF-8"
+        Document parse = Jsoup.parse(inputStream, forceEncode, finalUrl);
+        inputStream.close();
+        response.body().close();
+        return parse;
+    }
+
+    /**
+     * @see <a href="http://qiita.com/KeithYokoma/items/4b72096d386e919379e8">参考リンク</a>
+     * @param connection
+     * @return
+     * @throws IOException
+     */
+    private static InputStream getInputStream(HttpURLConnection connection) throws IOException {
+        InputStream in;
+        try {
+            in = connection.getInputStream();
+        } catch (FileNotFoundException e) { // IOException をキャッチするより先に FileNotFoundException をキャッチしないと IOException のキャッチブロックに行くのでこうする
+            LogUtils.e("Cannot get InputStream ", e );
+            InputStream err = null;
+            err = connection.getErrorStream();
+            // 4xx または 5xx なレスポンスのボディーを読み取る
+            return err;
+        } catch (IOException e) {
+            LogUtils.e("Cannot get InputStream ", e );
+            throw e;
+        }
+        return in;
+    }
+
 }

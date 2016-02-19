@@ -4,12 +4,8 @@ import android.content.Context;
 
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.ForeignCollection;
-import com.j256.ormlite.stmt.DeleteBuilder;
-import com.j256.ormlite.stmt.PreparedDelete;
 import com.j256.ormlite.stmt.PreparedQuery;
 import com.j256.ormlite.stmt.QueryBuilder;
-import com.j256.ormlite.stmt.SelectArg;
-import com.j256.ormlite.stmt.StatementBuilder;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -30,6 +26,7 @@ public class MemoRepository {
     private Dao<Memo, Integer> memoDao;
     private Dao<CitationResource, Integer> citationResourceDao;
     private Dao<MemoCitationResource, Integer> memoCitationResourceDao;
+    private MiddleTableQueryBuilder<MemoCitationResource> memoCitationResourceQueryBuilder;
 
 
     public MemoRepository(Context context) {
@@ -38,6 +35,7 @@ public class MemoRepository {
             memoDao = dbHelper.getDao(Memo.class);
             citationResourceDao = dbHelper.getDao(CitationResource.class);
             memoCitationResourceDao = dbHelper.getDao(MemoCitationResource.class);
+            memoCitationResourceQueryBuilder = new MiddleTableQueryBuilder<MemoCitationResource>(memoCitationResourceDao, MemoCitationResource.MEMO_ID_FIELD_NAME, MemoCitationResource.CITATION_RESOURCE_ID_FIELD_NAME);
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -51,6 +49,7 @@ public class MemoRepository {
                 memoDao = dbHelper.getDao(Memo.class);
                 citationResourceDao = dbHelper.getDao(CitationResource.class);
                 memoCitationResourceDao = dbHelper.getDao(MemoCitationResource.class);
+                memoCitationResourceQueryBuilder = new MiddleTableQueryBuilder<MemoCitationResource>(memoCitationResourceDao, MemoCitationResource.MEMO_ID_FIELD_NAME, MemoCitationResource.CITATION_RESOURCE_ID_FIELD_NAME);
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -116,6 +115,7 @@ public class MemoRepository {
     public List<Memo> loadFromChatTheme(ChatTheme chatTheme) {
         if (chatTheme == null) return null;
         ForeignCollection<Memo> children = chatTheme.getChildren();
+        if (children == null) return new ArrayList<>();
         return lookupCitationResource(
                 Arrays.asList(children.toArray(new Memo[children.size()]))
         );
@@ -126,10 +126,7 @@ public class MemoRepository {
      *******************************/
 
     private int deleteMemoCitationResource(Memo memo) throws SQLException {
-        DeleteBuilder<MemoCitationResource, Integer> queryBuilder = makeDeleteMiddleForMemoQuery();
-        PreparedDelete<MemoCitationResource> prepare = queryBuilder.prepare();
-        prepare.setArgumentHolderValue(0, memo);
-        return memoCitationResourceDao.delete(prepare);
+        return memoCitationResourceQueryBuilder.deleteMiddleForFirst(memo);
     }
 
     private List<Memo> lookupCitationResource(List<Memo> memos) {
@@ -151,89 +148,14 @@ public class MemoRepository {
                 .single();
     }
 
-    private PreparedQuery<Memo> memosForCitationResourceQuery = null;
     private PreparedQuery<CitationResource> citationResourcesForMemoQuery = null;
-
-    private List<Memo> lookupMemosForCitationResource(CitationResource citationResource) throws SQLException {
-        if (memosForCitationResourceQuery == null) {
-            memosForCitationResourceQuery = makeMemosForCitationResourceQuery();
-        }
-        memosForCitationResourceQuery.setArgumentHolderValue(0, citationResource);
-        return memoDao.query(memosForCitationResourceQuery);
-    }
 
     private List<CitationResource> lookupCitationResourcesForMemo(Memo memo) throws SQLException {
         if (citationResourcesForMemoQuery == null) {
-            citationResourcesForMemoQuery = makeCitationResourcesForMemoQuery();
+            citationResourcesForMemoQuery = memoCitationResourceQueryBuilder.makeSecondsForFirstQuery(citationResourceDao, CitationResource.ID_FIELD_NAME);
         }
         citationResourcesForMemoQuery.setArgumentHolderValue(0, memo);
         return citationResourceDao.query(citationResourcesForMemoQuery);
-    }
-
-    /**
-     * Build our query for CitationResource objects that match a Memo.
-     */
-    private PreparedQuery<CitationResource> makeCitationResourcesForMemoQuery() throws SQLException {
-
-        // build our outer query for CitationResource objects
-        QueryBuilder<CitationResource, Integer> citationResourceQb = citationResourceDao.queryBuilder();
-        // where the id matches in the post-id from the inner query
-        citationResourceQb.where().in(CitationResource.ID_FIELD_NAME, makeMiddleForMemoQuery());
-        return citationResourceQb.prepare();
-    }
-
-    /**
-     * Build our query for Memo objects that match a CitationResource
-     */
-    private PreparedQuery<Memo> makeMemosForCitationResourceQuery() throws SQLException {
-        QueryBuilder<Memo, Integer> memoQb = memoDao.queryBuilder();
-        memoQb.where().in(CitationResource.ID_FIELD_NAME, makeMiddleForMemoQuery());
-        return memoQb.prepare();
-    }
-    /**
-     * メモをセットしてもらえれば、中間テーブルのレコードを返すというクエリのビルダ。
-     * @return
-     * @throws SQLException
-     */
-    private QueryBuilder<MemoCitationResource, Integer> makeMiddleForMemoQuery() throws SQLException {
-        QueryBuilder<MemoCitationResource, Integer> memoCitationResourceQb = memoCitationResourceDao.queryBuilder();
-        memoCitationResourceQb.selectColumns(MemoCitationResource.CITATION_RESOURCE_ID_FIELD_NAME);
-        makeMiddleForMemoQuery(memoCitationResourceQb);
-        return memoCitationResourceQb;
-    }
-
-    private DeleteBuilder<MemoCitationResource, Integer> makeDeleteMiddleForMemoQuery() throws SQLException {
-        DeleteBuilder<MemoCitationResource, Integer> memoCitationResourceQb = memoCitationResourceDao.deleteBuilder();
-        makeMiddleForMemoQuery(memoCitationResourceQb);
-        return memoCitationResourceQb;
-    }
-
-
-    private static void makeMiddleForMemoQuery(StatementBuilder<MemoCitationResource, Integer> memoCitationResourceQb) throws SQLException {
-        SelectArg memoSelectArg = new SelectArg();
-        memoCitationResourceQb.where().eq(MemoCitationResource.MEMO_ID_FIELD_NAME, memoSelectArg);
-    }
-
-    /**
-     * 引用元資料をセットしてもらえれば、中間テーブルのレコードを返すというクエリのビルダ。
-     * @return
-     * @throws SQLException
-     */
-    private QueryBuilder<MemoCitationResource, Integer> makeMiddleForCitationResourceQuery() throws SQLException {
-        QueryBuilder<MemoCitationResource, Integer> memoCitationResourceQb = memoCitationResourceDao.queryBuilder();
-        memoCitationResourceQb.selectColumns(MemoCitationResource.MEMO_ID_FIELD_NAME);
-        makeMiddleForCitationResourceQuery(memoCitationResourceQb);
-        return memoCitationResourceQb;
-    }
-
-    private DeleteBuilder<MemoCitationResource, Integer> makeDeleteMiddleForCitationResourceQuery() throws SQLException {
-        DeleteBuilder<MemoCitationResource, Integer> memoCitationResourceQb = memoCitationResourceDao.deleteBuilder();
-        makeMiddleForCitationResourceQuery(memoCitationResourceQb);
-        return memoCitationResourceQb;
-    }
-    private static void makeMiddleForCitationResourceQuery(StatementBuilder<MemoCitationResource, Integer> memoCitationResourceQb) throws SQLException {
-        SelectArg citationResourceSelectArg = new SelectArg();
-        memoCitationResourceQb.where().eq(MemoCitationResource.CITATION_RESOURCE_ID_FIELD_NAME, citationResourceSelectArg);
     }
 
 }
