@@ -110,6 +110,7 @@ public class MainActivityHelper {
                             memo.setMemo(content);
                             memo.setSourceContent(sourceContent);
                             memo.setLoaded(true);
+                            // TODO 20160223 セーブしたほうがよい
                             final int i = memos.indexOf(memo);
                             handler.post(new Runnable() {
                                 @Override

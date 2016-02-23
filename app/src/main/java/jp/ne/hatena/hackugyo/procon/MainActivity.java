@@ -29,6 +29,7 @@ import com.jakewharton.rxbinding.widget.RxTextView;
 import com.jakewharton.rxbinding.widget.TextViewEditorActionEvent;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 
@@ -43,6 +44,7 @@ import jp.ne.hatena.hackugyo.procon.model.MemoRepository;
 import jp.ne.hatena.hackugyo.procon.ui.AbsBaseActivity;
 import jp.ne.hatena.hackugyo.procon.ui.RecyclerClickable;
 import jp.ne.hatena.hackugyo.procon.ui.fragment.AbsCustomDialogFragment;
+import jp.ne.hatena.hackugyo.procon.ui.fragment.ChoiceDialogFragment;
 import jp.ne.hatena.hackugyo.procon.ui.fragment.ConfirmDialogFragment;
 import jp.ne.hatena.hackugyo.procon.ui.fragment.InputDialogFragment;
 import jp.ne.hatena.hackugyo.procon.ui.widget.KeyboardClosingDrawerListener;
@@ -56,12 +58,14 @@ import rx.Subscriber;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action0;
 import rx.functions.Action1;
+import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
 public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFragment.Callbacks {
 
     public static final String TAG_INPUT_NEW_THEME = "MainActivity.TAG_INPUT_NEW_THEME";
     private static final String TAG_CONFIRM_DELETE_THEME = "MainActivity.TAG_CONFIRM_DELETE_THEME";
+    private static final String TAG_CHOOSE_EDIT_MODE = "MainActivity.TAG_CHOOSE_EDIT_MODE";
 
     private final MainActivity self = this;
 
@@ -417,20 +421,12 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
                 @Override
                 public boolean onRecyclerLongClicked(View v, final int position) {
-                    // TODO 20160210 copy to clipboard
-                    final LinearLayout layout = (LinearLayout) findViewById(R.id.snackbar);
-                    //snackbar の表示
-                    snackbar = Snackbar.make(layout, "削除しますか", Snackbar.LENGTH_LONG)
-                            .setAction("削除", new View.OnClickListener() {
-                                @Override
-                                public void onClick(View v) {
-                                    // something
-                                    deleteMemo(position);
-                                    mainListAdapter.notifyDataSetChanged();
-                                }
-                            });
-
-                    snackbar.show();
+                    Memo memo = memos.get(position);
+                    String[] items = {"このアイテムを削除", "Webから再読込", "このアイテムを共有"};
+                    Bundle args = new Bundle();
+                    args.putLong(ChoiceDialogFragment.ITEM_ID, memo.getId());
+                    ChoiceDialogFragment choiceDialogFragment = ChoiceDialogFragment.newInstance(self, args, "", null, Arrays.asList(items));
+                    showDialogFragment(choiceDialogFragment, TAG_CHOOSE_EDIT_MODE);
                     return true;
                 }
             };
@@ -599,6 +595,55 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
             getDrawerManager().closeDrawers();
         } else if (StringUtils.isSame(tag, TAG_CONFIRM_DELETE_THEME)) {
             deleteCurrentChatThemeAsync();
+        } else if (StringUtils.isSame(tag, TAG_CHOOSE_EDIT_MODE)) {
+            final long itemId = args.getLong(ChoiceDialogFragment.ITEM_ID);
+            final Memo single = Observable.from(memos)
+                    .firstOrDefault(null, new Func1<Memo, Boolean>() {
+                        @Override
+                        public Boolean call(Memo memo) {
+                            return memo.getId() == itemId;
+                        }
+                    })
+                    .toBlocking()
+                    .single();
+            if (single == null) {
+                LogUtils.w("something wrong. " + itemId);
+                return;
+            }
+            final int index = memos.indexOf(single);
+            switch (which) {
+                case 0:
+                    final LinearLayout layout = (LinearLayout) findViewById(R.id.snackbar);
+                    //snackbar の表示
+                    // 20160223 取り消しますかのほうがよい
+                    snackbar = Snackbar.make(layout, "削除しますか", Snackbar.LENGTH_LONG)
+                            .setAction("削除", new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    // something
+                                    deleteMemo(index);
+                                    mainListAdapter.notifyDataSetChanged();
+                                }
+                            });
+
+                    snackbar.show();
+                    break;
+                case 1:
+                    if (single.isForUrl()) {
+                        single.setMemo(null);
+                        single.setLoaded(false);
+                        single.setSourceContent(null);
+                        mainListAdapter.notifyItemChanged(index);
+                        mainActivityHelper.loadPreviewAsync(single);
+                    } else {
+                        LogUtils.w("something wrong.");
+                    }
+                    break;
+                case 2:
+                    break;
+                default:
+                    LogUtils.w("Something wrong. " + which);
+            }
         } else {
             LogUtils.w("Something wrong. " + tag);
         }
