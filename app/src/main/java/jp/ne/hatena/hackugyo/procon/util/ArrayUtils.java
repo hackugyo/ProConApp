@@ -215,4 +215,8 @@ public class ArrayUtils {
         String[] ts = new String[list.size()];
         return list.toArray(ts);
     }
+
+    public static String last(String[] split) {
+        return split.length == 0 ? null : split[split.length - 1];
+    }
 }

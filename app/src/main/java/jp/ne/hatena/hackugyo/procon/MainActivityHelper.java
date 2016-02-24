@@ -20,7 +20,7 @@ import jp.ne.hatena.hackugyo.procon.model.CitationResource;
 import jp.ne.hatena.hackugyo.procon.model.CitationResourceRepository;
 import jp.ne.hatena.hackugyo.procon.model.Memo;
 import jp.ne.hatena.hackugyo.procon.util.ArrayUtils;
-import jp.ne.hatena.hackugyo.procon.util.LogUtils;
+import jp.ne.hatena.hackugyo.procon.util.FileUtils;
 import jp.ne.hatena.hackugyo.procon.util.StringUtils;
 import jp.ne.hatena.hackugyo.procon.util.UrlUtils;
 import rx.Observable;
@@ -78,7 +78,7 @@ public class MainActivityHelper {
                                     SourceContent sourceContent = textCrawler.extractFrom(url, TextCrawler.NONE);
                                     String finalUrl = sourceContent.getFinalUrl();
                                     if (UrlUtils.isTwitterUrl(finalUrl)) { // 特定URLポスト以外のTwitterドメインには未対応
-                                        sourceContent = convertTwitterHtml(sourceContent.getHtmlCode());
+                                        sourceContent = convertTwitterHtml(sourceContent.getHtmlCode(), finalUrl);
                                         sourceContent.setFinalUrl(finalUrl);
                                     }
                                     return Pair.create(memo, sourceContent);
@@ -134,7 +134,7 @@ public class MainActivityHelper {
         }
     }
 
-    private SourceContent convertTwitterHtml(String html) {
+    private SourceContent convertTwitterHtml(String html, String finalUrl) {
 
         SourceContent sourceContent = new SourceContent();
         Document document = Jsoup.parse(html);
@@ -157,45 +157,49 @@ public class MainActivityHelper {
 
         sourceContent.setImages(imageUrlList);
 
-        // 本文
-        Elements select = document.select("div[class=dir-ltr]"); //document.getElementsByClass("dir-ltr");
-
-        if (select.size() != 0) {
-            LogUtils.d(select.outerHtml());
-            Element target = Observable.from(select)
-                    .lastOrDefault(null, new Func1<Element, Boolean>() {
-                        @Override
-                        public Boolean call(Element element) {
-                            return StringUtils.isPresent(element.ownText());
-                        }
-                    })
-                    .toBlocking()
-                    .single();
-            if (target != null) {
-                List<String> single =
-                        Observable.just(target.ownText())
-                                .concatWith(
-                                        Observable.from(target.children())
-                                                .map(new Func1<Element, String>() {
-                                                    @Override
-                                                    public String call(Element child) {
-                                                        if (child.attr("data-query-source", "hashtag_click") != null) {
-                                                            return child.ownText(); // ハッシュタグ
-                                                        }
-
-                                                        String url = child.attr("data-expanded-url");
-                                                        if (StringUtils.isEmpty(url)) {
-                                                            url = child.attr("data-url");
-                                                        }
-                                                        return url;
-                                                    }
-                                                }))
-                                .toList()
-                                .toBlocking()
-                                .single();
-                sourceContent.setDescription(StringUtils.join(single, StringUtils.getCRLF()));
-            }
+        if (BuildConfig.DEBUG) {
+            String fileName = StringUtils.build(ArrayUtils.last(finalUrl.split("/")), ".html");
+            FileUtils.saveFile(AppApplication.getContext(), fileName, html);
         }
+
+        // 本文
+        Elements elementsByClass = document.getElementsByClass("main-tweet-container");
+        Elements select =  (elementsByClass.size() == 0 ? document : elementsByClass.last()).select("div[class=dir-ltr]"); //document.getElementsByClass("dir-ltr");
+        if (select.size() == 0) return sourceContent;
+        Element target = Observable.from(select)
+                .lastOrDefault(null, new Func1<Element, Boolean>() {
+                    @Override
+                    public Boolean call(Element element) {
+                        return StringUtils.isPresent(element.ownText());
+                    }
+                })
+                .toBlocking()
+                .single();
+        if (target != null) {
+            List<String> single =
+                    Observable.just(target.ownText())
+                            .concatWith(
+                                    Observable.from(target.children())
+                                            .map(new Func1<Element, String>() {
+                                                @Override
+                                                public String call(Element child) {
+                                                    if (child.attr("data-query-source", "hashtag_click") != null) {
+                                                        return child.ownText(); // ハッシュタグ
+                                                    }
+
+                                                    String url = child.attr("data-expanded-url");
+                                                    if (StringUtils.isEmpty(url)) {
+                                                        url = child.attr("data-url");
+                                                    }
+                                                    return url;
+                                                }
+                                            }))
+                            .toList()
+                            .toBlocking()
+                            .single();
+            sourceContent.setDescription(StringUtils.join(single, StringUtils.getCRLF()));
+        }
+
         return sourceContent;
     }
 
