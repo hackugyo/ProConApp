@@ -201,7 +201,7 @@ public class MainActivityHelper {
                                             .map(new Func1<Element, String>() {
                                                 @Override
                                                 public String call(Element child) {
-                                                    if (child.attr("data-query-source", "hashtag_click") != null) {
+                                                    if (StringUtils.isSame(child.attr("data-query-source"), "hashtag_click")) {
                                                         return child.ownText(); // ハッシュタグ
                                                     }
 

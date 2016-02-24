@@ -22,6 +22,7 @@ import jp.ne.hatena.hackugyo.procon.model.CitationResource;
 import jp.ne.hatena.hackugyo.procon.model.Memo;
 import jp.ne.hatena.hackugyo.procon.ui.RecyclerClickable;
 import jp.ne.hatena.hackugyo.procon.util.ArrayUtils;
+import jp.ne.hatena.hackugyo.procon.util.LogUtils;
 import jp.ne.hatena.hackugyo.procon.util.StringUtils;
 import jp.ne.hatena.hackugyo.procon.util.UrlUtils;
 import rx.Observable;
@@ -162,6 +163,11 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
         public TextView pagesMark;
         public TextView numberOfTheMessage;
 
+        /**
+         * チャット状のフキダシ表示をする
+         * TextViewのautoLink設定については，<a href="http://stackoverflow.com/a/8654237">参考リンク</a>に従った。
+         * @param v
+         */
         public ChatLikeViewHolder(View v) {
             super(v);
             numberOfTheMessage = (TextView) v.findViewById(R.id.txtInfoNumber);
@@ -173,6 +179,28 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
             pagesMark = (TextView) v.findViewById(R.id.message_source_pages_mark);
             pages = (TextView) v.findViewById(R.id.message_source_pages);
             citationResourceContainer = (LinearLayout) v.findViewById(R.id.citation_resource_container);
+
+            txtMessage.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    TextView tv = (TextView) v;
+                    if (tv.getSelectionStart() == -1 && tv.getSelectionEnd() == -1) {
+                        content.performClick();
+                    } else if (tv.getSelectionStart() > 0 && tv.getSelectionEnd() > 0) {
+                        // リンクテキストを押された場合
+                    }
+                }
+            });
+            txtMessage.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    TextView tv = (TextView) v;
+                    if (tv.getSelectionStart() == -1 && tv.getSelectionEnd() == -1) {
+                        return content.performLongClick();
+                    }
+                    return false;
+                }
+            });
         }
 
         public void setMemoText(Memo memo) {

@@ -16,7 +16,6 @@ import java.util.List;
 public class ChoiceDialogFragment extends AbsCustomDialogFragment {
 
     private static final String CHOICES = "ChoiceDialogFragment.CHOICES";
-    public static final String ITEM_ID = "ChoiceDialogFragment.ITEM_ID";
     public static ChoiceDialogFragment newInstance(Context context, Bundle args, String title, String msg, List<String> choices) {
         ChoiceDialogFragment f = new ChoiceDialogFragment();
         if (args == null) args = new Bundle();

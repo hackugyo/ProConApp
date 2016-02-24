@@ -12,6 +12,7 @@ import android.widget.EditText;
  * Created by kwatanabe on 16/02/17.
  */
 public class InputDialogFragment extends AbsCustomDialogFragment {
+    public static final String DEFAULT_STRING = "InputDialogFragment.DEFAULT_STRING";
     public static final String RESULT = "InputDialogFragment.RESULT";
 
 
@@ -33,6 +34,7 @@ public class InputDialogFragment extends AbsCustomDialogFragment {
 
         // LayoutInflater inflater = LayoutInflater.from(getContext());
         userInput = new EditText(getActivity());
+        userInput.setText(args.getString(DEFAULT_STRING, ""));
         builder.setView(userInput);
 
         // OK/キャンセルボタンセット．ただし，ボタン表示名に明示的にnullを指定されていた場合，そのボタンは表示しない

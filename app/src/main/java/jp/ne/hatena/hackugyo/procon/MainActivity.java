@@ -65,7 +65,10 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     public static final String TAG_INPUT_NEW_THEME = "MainActivity.TAG_INPUT_NEW_THEME";
     private static final String TAG_CONFIRM_DELETE_THEME = "MainActivity.TAG_CONFIRM_DELETE_THEME";
     private static final String TAG_CHOOSE_EDIT_MODE = "MainActivity.TAG_CHOOSE_EDIT_MODE";
+    private static final String TAG_EDIT_CONTENT = "MainActivity.TAG_EDIT_CONTENT";
+    private static final String TAG_EDIT_CITATION_RESOURCE = "MainActivity.TAG_EDIT_CITATION_RESOURCE";
 
+    public static final String ITEM_ID = "MainActivity.ITEM_ID";
     public static final String CHOICE_IDS = "MainActivity.CHOICE_IDS";
 
     /**
@@ -75,7 +78,9 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         DELETE_THIS_ITEM(0, "このアイテムを削除"),
         FORCE_RELOAD(1, "Webから再読込"),
         SHARE_THIS_ITEM(2, "本文を共有"),
-        OPEN_URL(3, "URLを開く");
+        OPEN_URL(3, "URLを開く"),
+        EDIT_THIS_ITEM(4, "本文を編集"),
+        EDIT_CITATION(5, "出典情報を編集"),;
         public final int id;
         public final String  title;
         EditModeEnum(final int id, final String title) {
@@ -468,9 +473,13 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                         if (memo.isForUrl()) items.add(EditModeEnum.FORCE_RELOAD);
                         items.add(EditModeEnum.SHARE_THIS_ITEM);
                         if (memo.isForUrl()) items.add(EditModeEnum.OPEN_URL);
+                        if (!memo.isForUrl()) items.add(EditModeEnum.EDIT_THIS_ITEM);
+                        items.add(EditModeEnum.EDIT_CITATION);
+
+
                     }
                     Bundle args = new Bundle();
-                    args.putLong(ChoiceDialogFragment.ITEM_ID, memo.getId());
+                    args.putLong(ITEM_ID, memo.getId());
                     args.putIntegerArrayList(CHOICE_IDS, EditModeEnum.idsFrom(items));
                     ChoiceDialogFragment choiceDialogFragment = ChoiceDialogFragment.newInstance(self, args, "", null,EditModeEnum.titlesFrom(items));
                     showDialogFragment(choiceDialogFragment, TAG_CHOOSE_EDIT_MODE);
@@ -642,46 +651,11 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         } else if (StringUtils.isSame(tag, TAG_CONFIRM_DELETE_THEME)) {
             deleteCurrentChatThemeAsync();
         } else if (StringUtils.isSame(tag, TAG_CHOOSE_EDIT_MODE)) {
-            final long itemId = args.getLong(ChoiceDialogFragment.ITEM_ID);
-            Memo single = Observable.from(memos)
-                    .firstOrDefault(null, new Func1<Memo, Boolean>() {
-                        @Override
-                        public Boolean call(Memo memo) {
-                            return memo.getId() == itemId;
-                        }
-                    })
-                    .toBlocking()
-                    .single();
-            if (single == null) {
-                LogUtils.w("something wrong. " + itemId);
-                return;
-            }
-            int index = memos.indexOf(single);
-            switch (args.getIntegerArrayList(CHOICE_IDS).get(which)) {
-                case 0:
-                    deleteMemoWithSomeStay(single, index);
-                    break;
-                case 1:
-                    if (single.isForUrl()) {
-                        mainActivityHelper.forceReloadPreviewAsync(single);
-                        mainListAdapter.notifyItemChanged(index);
-                    } else {
-                        LogUtils.w("something wrong.");
-                    }
-                    break;
-                case 2:
-                    shareContent(single);
-                    break;
-                case 3:
-                    if (single.isForUrl()) {
-                        launchExternalBrowser(single.getCitationResource());
-                    } else {
-                        LogUtils.w("something wrong.");
-                    }
-
-                default:
-                    LogUtils.w("Something wrong. " + which);
-            }
+            processEditingResult(args.getLong(ITEM_ID), args.getIntegerArrayList(CHOICE_IDS), which);
+        } else if (StringUtils.isSame(tag, TAG_EDIT_CONTENT)) {
+            setContentAt(args);
+        } else if (StringUtils.isSame(tag, TAG_EDIT_CITATION_RESOURCE)) {
+            setCitationResourceAt(args);
         } else {
             LogUtils.w("Something wrong. " + tag);
         }
@@ -693,10 +667,123 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
             // nothing to do.
         } else if (StringUtils.isSame(tag, TAG_CONFIRM_DELETE_THEME)) {
             // nothing to do.
+        } else if (StringUtils.isSame(tag, TAG_CHOOSE_EDIT_MODE)) {
+            // nothing to do.
+        } else if (StringUtils.isSame(tag, TAG_EDIT_CONTENT)) {
+            // nothing to do.
+        } else if (StringUtils.isSame(tag, TAG_EDIT_CITATION_RESOURCE)) {
+            // nothing to do.
         } else {
             LogUtils.w("Something wrong. " + tag);
         }
 
+    }
+
+    private void processEditingResult(final long itemId, List<Integer> choiceIds, int which) {
+        Memo single = Observable.from(memos)
+                .firstOrDefault(null, new Func1<Memo, Boolean>() {
+                    @Override
+                    public Boolean call(Memo memo) {
+                        return memo.getId() == itemId;
+                    }
+                })
+                .toBlocking()
+                .single();
+        if (single == null) {
+            LogUtils.w("something wrong. " + itemId);
+            return;
+        }
+        int index = memos.indexOf(single);
+        switch (choiceIds.get(which)) {
+            case 0:
+                deleteMemoWithSomeStay(single, index);
+                break;
+            case 1:
+                if (single.isForUrl()) {
+                    mainActivityHelper.forceReloadPreviewAsync(single);
+                    mainListAdapter.notifyItemChanged(index);
+                } else {
+                    LogUtils.w("something wrong.");
+                }
+                break;
+            case 2:
+                shareContent(single);
+                break;
+            case 3:
+                if (single.isForUrl()) {
+                    launchExternalBrowser(single.getCitationResource());
+                }
+            case 4:
+                if (!single.isForUrl()) {
+                    Bundle bundle = new Bundle();
+                    bundle.putLong(ITEM_ID, itemId);
+                    bundle.putString(InputDialogFragment.DEFAULT_STRING, single.getMemo());
+                    showDialogFragment(InputDialogFragment.newInstance(self, bundle, "本文編集", null), TAG_EDIT_CONTENT);
+                }
+                break;
+            case 5:
+                Bundle bundle = new Bundle();
+                bundle.putLong(ITEM_ID, itemId);
+                bundle.putString(InputDialogFragment.DEFAULT_STRING, single.getCitationResource());
+                showDialogFragment(InputDialogFragment.newInstance(self, bundle, "出典編集", null), TAG_EDIT_CITATION_RESOURCE);
+                break;
+            default:
+                LogUtils.w("Something wrong. " + which);
+        }
+    }
+
+    /**
+     * 本文の編集
+     * @param args
+     * @return URL用のアイテムだった場合は本文を編集しない。
+     */
+    private boolean setContentAt(Bundle args) {
+        final long itemId = args.getLong(ITEM_ID);
+        Memo single = Observable.from(memos)
+                .firstOrDefault(null, new Func1<Memo, Boolean>() {
+                    @Override
+                    public Boolean call(Memo memo) {
+                        return memo.getId() == itemId;
+                    }
+                })
+                .toBlocking()
+                .single();
+        if (single == null || single.isForUrl() || !args.containsKey(InputDialogFragment.RESULT)) {
+            return false;
+        } else {
+            single.setMemo(args.getString(InputDialogFragment.RESULT, ""));
+            memoRepository.save(single);
+            mainListAdapter.notifyItemChanged(memos.indexOf(single));
+            return true;
+        }
+    }
+
+    /**
+     * 出典情報の編集。URL以外からURLに変化した場合は、再読込は行わない。
+     * @param args
+     */
+    private void setCitationResourceAt(Bundle args) {
+        final long itemId = args.getLong(ITEM_ID);
+        Memo single = Observable.from(memos)
+                .firstOrDefault(null, new Func1<Memo, Boolean>() {
+                    @Override
+                    public Boolean call(Memo memo) {
+                        return memo.getId() == itemId;
+                    }
+                })
+                .toBlocking()
+                .single();
+        if (single != null && args.containsKey(InputDialogFragment.RESULT)) {
+            boolean isForUrlCurrently = single.isForUrl();
+            single.setCitationResources(null);
+            single.addCitationResource(args.getString(InputDialogFragment.RESULT, ""));
+            single.setLoaded(true);
+            memoRepository.save(single);
+            mainListAdapter.notifyItemChanged(memos.indexOf(single));
+            if (isForUrlCurrently) {
+                mainActivityHelper.forceReloadPreviewAsync(single);
+            }
+        }
     }
 
     /**
