@@ -98,6 +98,7 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
                 return false;
             }
         });
+        holder.setRemoved(memo.isRemoved());
 
     }
 
@@ -176,6 +177,10 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
 
         public void setMemoText(Memo memo) {
             txtMessage.setText(memo.getMemo());
+        }
+
+        public void setRemoved(boolean isRemoved) {
+            this.content.setVisibility(isRemoved ? View.GONE : View.VISIBLE);
         }
     }
 

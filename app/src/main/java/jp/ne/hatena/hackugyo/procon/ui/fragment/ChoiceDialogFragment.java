@@ -11,13 +11,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by kwatanabe on 16/02/23.
+ * 選択肢から1つを選ぶダイアログ。
  */
 public class ChoiceDialogFragment extends AbsCustomDialogFragment {
 
     private static final String CHOICES = "ChoiceDialogFragment.CHOICES";
     public static final String ITEM_ID = "ChoiceDialogFragment.ITEM_ID";
-
     public static ChoiceDialogFragment newInstance(Context context, Bundle args, String title, String msg, List<String> choices) {
         ChoiceDialogFragment f = new ChoiceDialogFragment();
         if (args == null) args = new Bundle();

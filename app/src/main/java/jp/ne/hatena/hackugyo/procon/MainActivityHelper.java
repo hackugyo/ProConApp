@@ -53,6 +53,15 @@ public class MainActivityHelper {
         loadPreviewAsync(Observable.from(ArrayUtils.reverse(this.memos)));
     }
 
+    void forceReloadPreviewAsync(Memo memo) {
+        if (!memo.isForUrl()) return;
+        memo.setMemo(null);
+        memo.setLoaded(false);
+        memo.setSourceContent(null);
+        memo.resetSubCitationResources();
+        loadPreviewAsync(memo);
+    }
+
     void loadPreviewAsync(Memo memo) {
         loadPreviewAsync(Observable.just(memo));
     }
@@ -63,7 +72,9 @@ public class MainActivityHelper {
                 .filter(new Func1<Memo, Boolean>() {
                     @Override
                     public Boolean call(Memo memo) {
-                        return memo.isForUrl() && StringUtils.isEmpty(memo.getMemo());
+                        boolean result = memo.isForUrl() && StringUtils.isEmpty(memo.getMemo());
+                        if (!result) memo.setLoaded(true); // あまり行儀よくないが，group化するのめんどうだったのでここで弾いたものはtrueにしてしまう
+                        return result;
                     }
                 })
                 .toList()

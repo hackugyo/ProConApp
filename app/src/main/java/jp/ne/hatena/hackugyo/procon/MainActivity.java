@@ -29,7 +29,6 @@ import com.jakewharton.rxbinding.widget.RxTextView;
 import com.jakewharton.rxbinding.widget.TextViewEditorActionEvent;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 
@@ -66,6 +65,46 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     public static final String TAG_INPUT_NEW_THEME = "MainActivity.TAG_INPUT_NEW_THEME";
     private static final String TAG_CONFIRM_DELETE_THEME = "MainActivity.TAG_CONFIRM_DELETE_THEME";
     private static final String TAG_CHOOSE_EDIT_MODE = "MainActivity.TAG_CHOOSE_EDIT_MODE";
+
+    public static final String CHOICE_IDS = "MainActivity.CHOICE_IDS";
+
+    /**
+     * 長押しからのアイテム編集モード
+     */
+    public enum EditModeEnum {
+        DELETE_THIS_ITEM(0, "このアイテムを削除"),
+        FORCE_RELOAD(1, "Webから再読込"),
+        SHARE_THIS_ITEM(2, "本文を共有"),
+        OPEN_URL(3, "URLを開く");
+        public final int id;
+        public final String  title;
+        EditModeEnum(final int id, final String title) {
+            this.id = id;
+            this.title = title;
+        }
+
+        static ArrayList<String> titlesFrom(List<EditModeEnum> enums) {
+            return new ArrayList<String>(
+                    Observable.from(enums).map(new Func1<EditModeEnum, String>() {
+                        @Override
+                        public String call(EditModeEnum editModeEnum) {
+                            return editModeEnum.title;
+                        }
+                    }).toList().toBlocking().single()
+            );
+        }
+
+        static ArrayList<Integer> idsFrom(List<EditModeEnum> enums) {
+            return new ArrayList<Integer>(
+                    Observable.from(enums).map(new Func1<EditModeEnum, Integer>() {
+                        @Override
+                        public Integer call(EditModeEnum editModeEnum) {
+                            return editModeEnum.id;
+                        }
+                    }).toList().toBlocking().single()
+            );
+        }
+    }
 
     private final MainActivity self = this;
 
@@ -423,10 +462,17 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                 @Override
                 public boolean onRecyclerLongClicked(View v, final int position) {
                     Memo memo = memos.get(position);
-                    String[] items = {"このアイテムを削除", "Webから再読込", "このアイテムを共有"};
+                    ArrayList<EditModeEnum> items = new ArrayList<>();
+                    {
+                        items.add(EditModeEnum.DELETE_THIS_ITEM);
+                        if (memo.isForUrl()) items.add(EditModeEnum.FORCE_RELOAD);
+                        items.add(EditModeEnum.SHARE_THIS_ITEM);
+                        if (memo.isForUrl()) items.add(EditModeEnum.OPEN_URL);
+                    }
                     Bundle args = new Bundle();
                     args.putLong(ChoiceDialogFragment.ITEM_ID, memo.getId());
-                    ChoiceDialogFragment choiceDialogFragment = ChoiceDialogFragment.newInstance(self, args, "", null, Arrays.asList(items));
+                    args.putIntegerArrayList(CHOICE_IDS, EditModeEnum.idsFrom(items));
+                    ChoiceDialogFragment choiceDialogFragment = ChoiceDialogFragment.newInstance(self, args, "", null,EditModeEnum.titlesFrom(items));
                     showDialogFragment(choiceDialogFragment, TAG_CHOOSE_EDIT_MODE);
                     return true;
                 }
@@ -434,7 +480,6 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         }
         return mainOnClickRecyclerListener;
     }
-
 
     private RecyclerClickable getSummaryOnClickRecyclerListener() {
         if (summaryOnClickRecyclerListener == null) {
@@ -598,7 +643,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
             deleteCurrentChatThemeAsync();
         } else if (StringUtils.isSame(tag, TAG_CHOOSE_EDIT_MODE)) {
             final long itemId = args.getLong(ChoiceDialogFragment.ITEM_ID);
-            final Memo single = Observable.from(memos)
+            Memo single = Observable.from(memos)
                     .firstOrDefault(null, new Func1<Memo, Boolean>() {
                         @Override
                         public Boolean call(Memo memo) {
@@ -611,37 +656,29 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                 LogUtils.w("something wrong. " + itemId);
                 return;
             }
-            final int index = memos.indexOf(single);
-            switch (which) {
+            int index = memos.indexOf(single);
+            switch (args.getIntegerArrayList(CHOICE_IDS).get(which)) {
                 case 0:
-                    final LinearLayout layout = (LinearLayout) findViewById(R.id.snackbar);
-                    //snackbar の表示
-                    // 20160223 取り消しますかのほうがよい
-                    snackbar = Snackbar.make(layout, "削除しますか", Snackbar.LENGTH_LONG)
-                            .setAction("削除", new View.OnClickListener() {
-                                @Override
-                                public void onClick(View v) {
-                                    // something
-                                    deleteMemo(index);
-                                    mainListAdapter.notifyDataSetChanged();
-                                }
-                            });
-
-                    snackbar.show();
+                    deleteMemoWithSomeStay(single, index);
                     break;
                 case 1:
                     if (single.isForUrl()) {
-                        single.setMemo(null);
-                        single.setLoaded(false);
-                        single.setSourceContent(null);
+                        mainActivityHelper.forceReloadPreviewAsync(single);
                         mainListAdapter.notifyItemChanged(index);
-                        mainActivityHelper.loadPreviewAsync(single);
                     } else {
                         LogUtils.w("something wrong.");
                     }
                     break;
                 case 2:
+                    shareContent(single);
                     break;
+                case 3:
+                    if (single.isForUrl()) {
+                        launchExternalBrowser(single.getCitationResource());
+                    } else {
+                        LogUtils.w("something wrong.");
+                    }
+
                 default:
                     LogUtils.w("Something wrong. " + which);
             }
@@ -735,5 +772,55 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
             undoSnackbar.show();
         }
         return true;
+    }
+
+    /**
+     * 長押しから削除（Snackbarによる猶予つき）
+     * @param memo
+     * @param memoPosition
+     */
+    private void deleteMemoWithSomeStay(final Memo memo, final int memoPosition) {
+
+        memo.setRemoved(true);
+        mainListAdapter.notifyItemChanged(memoPosition);
+
+        final LinearLayout layout = (LinearLayout) findViewById(R.id.snackbar);
+        //snackbar の表示
+        snackbar = Snackbar.make(layout, "削除しました", Snackbar.LENGTH_LONG)
+                .setAction("戻す", new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        memo.setRemoved(false);
+                        mainListAdapter.notifyItemChanged(memoPosition);
+                        mainRecyclerView.smoothScrollToPosition(memoPosition);
+                    }
+                })
+                .setCallback(new Snackbar.Callback() {
+                    @Override
+                    public void onDismissed(Snackbar snackbar, int event) {
+                        super.onDismissed(snackbar, event);
+                        if (memos.get(memoPosition).isRemoved()) {
+                            deleteMemo(memoPosition);
+                            mainListAdapter.notifyDataSetChanged();
+                        }
+                    }
+                });
+
+        snackbar.show();
+    }
+
+    private void shareContent(final Memo memo) {
+
+        String content;
+        if (memo.isForUrl() && !memo.isLoaded()) {
+            content = memo.getCitationResource();
+        } else {
+            content = StringUtils.build(memo.getMemo(), StringUtils.getCRLF(), memo.getCitationResource());
+        }
+        Intent sendIntent = new Intent();
+        sendIntent.setAction(Intent.ACTION_SEND);
+        sendIntent.putExtra(Intent.EXTRA_TEXT, content);
+        sendIntent.setType("text/plain");
+        startActivity(sendIntent);
     }
 }

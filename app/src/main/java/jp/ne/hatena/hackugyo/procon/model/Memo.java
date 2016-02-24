@@ -39,6 +39,8 @@ public class Memo {
     private boolean isLoaded = false;
     private SourceContent mSourceContent;
     private List<CitationResource> citationResources;
+    private boolean mRemoved;
+    private boolean isRemoved = false;
 
     public Memo() { // no-arg constructor
         // Empty
@@ -144,4 +146,21 @@ public class Memo {
         if (this.citationResources == null) this.citationResources = new ArrayList<>();
         this.citationResources.add(new CitationResource(resource));
     }
+
+    public void setRemoved(boolean isRemoved) {
+        this.isRemoved = isRemoved;
+    }
+
+    public boolean isRemoved() {
+        return this.isRemoved;
+    }
+
+    public void resetSubCitationResources() {
+        if (ArrayUtils.any(this.citationResources)) {
+            CitationResource citationResource = this.citationResources.get(0);
+            this.citationResources.clear();
+            this.citationResources.add(citationResource);
+        }
+    }
+
 }
