@@ -18,11 +18,14 @@ import com.squareup.picasso.Picasso;
 import java.util.List;
 
 import jp.ne.hatena.hackugyo.procon.R;
+import jp.ne.hatena.hackugyo.procon.model.CitationResource;
 import jp.ne.hatena.hackugyo.procon.model.Memo;
 import jp.ne.hatena.hackugyo.procon.ui.RecyclerClickable;
 import jp.ne.hatena.hackugyo.procon.util.ArrayUtils;
 import jp.ne.hatena.hackugyo.procon.util.StringUtils;
 import jp.ne.hatena.hackugyo.procon.util.UrlUtils;
+import rx.Observable;
+import rx.functions.Func1;
 
 /**
  * Created by kwatanabe on 15/08/27.
@@ -215,11 +218,11 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
                 txtMessage.setText(memoText);
             }
 
-            SourceContent sourceContent = memo.getSourceContent();
-            if (sourceContent != null && ArrayUtils.any(sourceContent.getImages()) && UrlUtils.isTwitterUrl(sourceContent.getFinalUrl())) {
+            String imageUrl = getImageUrlFrom(memo);
+            if (imageUrl != null) {
                 Picasso
                         .with(context)
-                        .load(memo.getSourceContent().getImages().get(0))
+                        .load(imageUrl)
                         .fit()
                         .centerInside()
                         .into(imageView);
@@ -228,6 +231,31 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
                 imageView.setVisibility(View.GONE);
             }
         }
-    }
 
+        private String getImageUrlFrom(Memo memo) {
+
+            SourceContent sourceContent = memo.getSourceContent();
+            String imageUrl = null;
+            if (sourceContent == null) {
+                imageUrl = Observable.from(memo.getCitationResources()).skip(1).filter(new Func1<CitationResource, Boolean>() {
+                    @Override
+                    public Boolean call(CitationResource citationResource) {
+                        return UrlUtils.isValidUrl(citationResource.getName());
+                    }
+                })
+                        .map(new Func1<CitationResource, String>() {
+                            @Override
+                            public String call(CitationResource citationResource) {
+                                return citationResource.getName();
+                            }
+                        })
+                        .firstOrDefault(null)
+                        .toBlocking()
+                        .single();
+            } else if (ArrayUtils.any(sourceContent.getImages()) && UrlUtils.isTwitterUrl(sourceContent.getFinalUrl())) {
+                imageUrl = memo.getSourceContent().getImages().get(0);
+            }
+            return imageUrl;
+        }
+    }
 }

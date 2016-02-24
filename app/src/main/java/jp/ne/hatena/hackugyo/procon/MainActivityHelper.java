@@ -19,6 +19,7 @@ import jp.ne.hatena.hackugyo.procon.io.ImprovedTextCrawler;
 import jp.ne.hatena.hackugyo.procon.model.CitationResource;
 import jp.ne.hatena.hackugyo.procon.model.CitationResourceRepository;
 import jp.ne.hatena.hackugyo.procon.model.Memo;
+import jp.ne.hatena.hackugyo.procon.model.MemoRepository;
 import jp.ne.hatena.hackugyo.procon.util.ArrayUtils;
 import jp.ne.hatena.hackugyo.procon.util.FileUtils;
 import jp.ne.hatena.hackugyo.procon.util.StringUtils;
@@ -33,16 +34,18 @@ import rx.schedulers.Schedulers;
  * Created by kwatanabe on 16/02/12.
  */
 public class MainActivityHelper {
-
+    private final MainActivityHelper self = this;
     private final ImprovedTextCrawler textCrawler;
     private final RecyclerView.Adapter adapter;
     private final List<Memo> memos;
     private final Handler handler;
+    private final MemoRepository memoRepository;
 
-    MainActivityHelper(ImprovedTextCrawler crawler, RecyclerView.Adapter adapter, List<Memo> memos) {
+    MainActivityHelper(ImprovedTextCrawler crawler, RecyclerView.Adapter adapter, List<Memo> memos, MemoRepository memoRepository) {
         this.textCrawler = crawler;
         this.adapter = adapter;
         this.memos = memos;
+        this.memoRepository = memoRepository;
         this.handler = new Handler();
     }
 
@@ -96,7 +99,6 @@ public class MainActivityHelper {
                     public void call(Pair<Memo, SourceContent> pair) {
                         final long id = pair.first.getId();
                         SourceContent sourceContent = pair.second;
-                        final String content = previewText(sourceContent);
                         Memo memo = Observable.from(memos)
                                 .firstOrDefault(null, new Func1<Memo, Boolean>() {
                                     @Override
@@ -107,10 +109,15 @@ public class MainActivityHelper {
                                 .toBlocking()
                                 .single();
                         if (memo != null) {
+                            final String content = previewText(sourceContent);
                             memo.setMemo(content);
                             memo.setSourceContent(sourceContent);
+                            if (sourceContent != null && ArrayUtils.any(sourceContent.getImages()) && UrlUtils.isTwitterUrl(sourceContent.getFinalUrl())) {
+                                memo.addCitationResource(sourceContent.getImages().get(0));
+                            }
                             memo.setLoaded(true);
-                            // TODO 20160223 セーブしたほうがよい
+                            self.memoRepository.save(memo);
+
                             final int i = memos.indexOf(memo);
                             handler.post(new Runnable() {
                                 @Override

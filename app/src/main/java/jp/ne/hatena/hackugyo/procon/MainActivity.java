@@ -138,7 +138,8 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                                 mainActivityHelper = new MainActivityHelper(
                                         new ImprovedTextCrawler(AppApplication.provideOkHttpClient(self)),
                                         mainListAdapter,
-                                        self.memos);
+                                        self.memos,
+                                        memoRepository);
                                 mainActivityHelper.loadPreviewAsync();
                             }
 
