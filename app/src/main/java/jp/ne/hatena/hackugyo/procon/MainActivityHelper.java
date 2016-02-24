@@ -1,5 +1,6 @@
 package jp.ne.hatena.hackugyo.procon;
 
+import android.content.Context;
 import android.os.Handler;
 import android.support.v7.widget.RecyclerView;
 import android.util.Pair;
@@ -13,6 +14,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.util.ArrayList;
+import java.util.IllegalFormatCodePointException;
 import java.util.List;
 
 import jp.ne.hatena.hackugyo.procon.io.ImprovedTextCrawler;
@@ -22,6 +24,7 @@ import jp.ne.hatena.hackugyo.procon.model.Memo;
 import jp.ne.hatena.hackugyo.procon.model.MemoRepository;
 import jp.ne.hatena.hackugyo.procon.util.ArrayUtils;
 import jp.ne.hatena.hackugyo.procon.util.FileUtils;
+import jp.ne.hatena.hackugyo.procon.util.LogUtils;
 import jp.ne.hatena.hackugyo.procon.util.StringUtils;
 import jp.ne.hatena.hackugyo.procon.util.UrlUtils;
 import rx.Observable;
@@ -105,40 +108,56 @@ public class MainActivityHelper {
         parallel
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread()) // #subscribe(Observer o)のoがどこで動くか．
-                .subscribe(new Action1<Pair<Memo, SourceContent>>() {
-                    @Override
-                    public void call(Pair<Memo, SourceContent> pair) {
-                        final long id = pair.first.getId();
-                        SourceContent sourceContent = pair.second;
-                        Memo memo = Observable.from(memos)
-                                .firstOrDefault(null, new Func1<Memo, Boolean>() {
-                                    @Override
-                                    public Boolean call(Memo memo) {
-                                        return memo.getId() == id;
+                .subscribe(
+                        new Action1<Pair<Memo, SourceContent>>() {
+                            @Override
+                            public void call(Pair<Memo, SourceContent> pair) {
+                                final long id = pair.first.getId();
+                                SourceContent sourceContent = pair.second;
+                                Memo memo = Observable.from(memos)
+                                        .firstOrDefault(null, new Func1<Memo, Boolean>() {
+                                            @Override
+                                            public Boolean call(Memo memo) {
+                                                return memo.getId() == id;
+                                            }
+                                        })
+                                        .toBlocking()
+                                        .single();
+                                if (memo != null) {
+                                    final String content = previewText(sourceContent);
+                                    memo.setMemo(content);
+                                    memo.setSourceContent(sourceContent);
+                                    if (sourceContent != null && ArrayUtils.any(sourceContent.getImages()) && UrlUtils.isTwitterUrl(sourceContent.getFinalUrl())) {
+                                        memo.addCitationResource(sourceContent.getImages().get(0));
                                     }
-                                })
-                                .toBlocking()
-                                .single();
-                        if (memo != null) {
-                            final String content = previewText(sourceContent);
-                            memo.setMemo(content);
-                            memo.setSourceContent(sourceContent);
-                            if (sourceContent != null && ArrayUtils.any(sourceContent.getImages()) && UrlUtils.isTwitterUrl(sourceContent.getFinalUrl())) {
-                                memo.addCitationResource(sourceContent.getImages().get(0));
-                            }
-                            memo.setLoaded(true);
-                            self.memoRepository.save(memo);
+                                    memo.setLoaded(true);
+                                    if (self.memoRepository == null || self.memoRepository.isClosed()) {
+                                        Context context = AppApplication.getContext();
+                                        MemoRepository memoRepository = new MemoRepository(context);
+                                        memoRepository.save(memo);
+                                        memoRepository.onPause();
+                                    } else {
+                                        self.memoRepository.save(memo);
+                                    }
 
-                            final int i = memos.indexOf(memo);
-                            handler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    adapter.notifyItemChanged(i);
+                                    final int i = memos.indexOf(memo);
+                                    handler.post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            adapter.notifyItemChanged(i);
+                                        }
+                                    });
                                 }
-                            });
-                        }
-                    }
-                });
+                            }
+                        },
+                        new Action1<Throwable>() {
+                            @Override
+                            public void call(Throwable throwable) {
+                                if (throwable instanceof IllegalFormatCodePointException) {
+                                    LogUtils.w(throwable.getMessage());
+                                }
+                            }
+                        });
     }
 
     private String previewText(SourceContent sourceContent) {

@@ -79,6 +79,10 @@ public class MemoRepository {
         return result.isCreated() || result.isUpdated();
     }
 
+    public boolean isClosed() {
+        return dbHelper == null || !dbHelper.isOpen();
+    }
+
     public int delete(Memo memo) {
         // helperからDaoクラスの取得
         // DaoクラスからこのMemoインスタンス自身を消去する
@@ -93,6 +97,8 @@ public class MemoRepository {
         }
         return 0;
     }
+
+
 
     public List<Memo> findAll() {
         QueryBuilder<Memo, Integer> qb = memoDao.queryBuilder();
@@ -157,5 +163,6 @@ public class MemoRepository {
         citationResourcesForMemoQuery.setArgumentHolderValue(0, memo);
         return citationResourceDao.query(citationResourcesForMemoQuery);
     }
+
 
 }
