@@ -696,7 +696,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         int index = memos.indexOf(single);
         switch (choiceIds.get(which)) {
             case 0:
-                deleteMemoWithSomeStay(single, index);
+                deleteMemoWithSomeStay(single, itemId);
                 break;
             case 1:
                 if (single.isForUrl()) {
@@ -864,12 +864,12 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     /**
      * 長押しから削除（Snackbarによる猶予つき）
      * @param memo
-     * @param memoPosition
+     * @param itemId
      */
-    private void deleteMemoWithSomeStay(final Memo memo, final int memoPosition) {
+    private void deleteMemoWithSomeStay(Memo memo, final long itemId) {
 
         memo.setRemoved(true);
-        mainListAdapter.notifyItemChanged(memoPosition);
+        mainListAdapter.notifyItemChanged(memos.indexOf(memo));
 
         final LinearLayout layout = (LinearLayout) findViewById(R.id.snackbar);
         //snackbar の表示
@@ -877,18 +877,41 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                 .setAction("戻す", new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        memo.setRemoved(false);
-                        mainListAdapter.notifyItemChanged(memoPosition);
-                        mainRecyclerView.smoothScrollToPosition(memoPosition);
+                        Memo single = Observable.from(memos)
+                                .firstOrDefault(null, new Func1<Memo, Boolean>() {
+                                    @Override
+                                    public Boolean call(Memo memo) {
+                                        return memo.getId() == itemId;
+                                    }
+                                })
+                                .toBlocking()
+                                .single();
+                        if (single != null) {
+                            single.setRemoved(false);
+                            int index = memos.indexOf(single);
+                            mainListAdapter.notifyItemChanged(index);
+                            mainRecyclerView.smoothScrollToPosition(index);
+                        }
                     }
                 })
                 .setCallback(new Snackbar.Callback() {
                     @Override
                     public void onDismissed(Snackbar snackbar, int event) {
                         super.onDismissed(snackbar, event);
-                        if (memos.get(memoPosition).isRemoved()) {
-                            deleteMemo(memoPosition);
-                            mainListAdapter.notifyDataSetChanged();
+                        Memo single = Observable.from(memos)
+                                .firstOrDefault(null, new Func1<Memo, Boolean>() {
+                                    @Override
+                                    public Boolean call(Memo memo) {
+                                        return memo.getId() == itemId;
+                                    }
+                                })
+                                .toBlocking()
+                                .single();
+                        if (single != null) {
+                            if (single.isRemoved()) {
+                                deleteMemo(memos.indexOf(single));
+                                mainListAdapter.notifyDataSetChanged();
+                            }
                         }
                     }
                 });
