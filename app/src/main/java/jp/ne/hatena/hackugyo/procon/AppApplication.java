@@ -3,6 +3,7 @@ package jp.ne.hatena.hackugyo.procon;
 import android.app.Application;
 import android.content.Context;
 
+import com.squareup.okhttp.Cache;
 import com.squareup.okhttp.Interceptor;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
@@ -13,6 +14,7 @@ import com.squareup.picasso.Picasso;
 
 import net.danlew.android.joda.JodaTimeAndroid;
 
+import java.io.File;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
@@ -141,6 +143,10 @@ public class AppApplication extends Application {
         client.setConnectTimeout(Config.HTTP_CLIENT_TIMEOUT_SECOND, TimeUnit.SECONDS);
         client.setWriteTimeout(Config.HTTP_CLIENT_TIMEOUT_SECOND, TimeUnit.SECONDS);
         client.setReadTimeout(Config.HTTP_CLIENT_TIMEOUT_SECOND, TimeUnit.SECONDS);
+
+        int cacheSize = 10 * 1024 * 1024; // 10 MiB
+        File cacheDir = new File(System.getProperty("java.io.tmpdir"), "okhttp-cache");
+        client.setCache(new Cache(cacheDir, cacheSize));
 
         return client;
     }
