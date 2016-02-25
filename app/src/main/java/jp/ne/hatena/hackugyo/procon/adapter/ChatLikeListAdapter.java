@@ -158,7 +158,7 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
         public TextView txtInfo;
         public LinearLayout content;
         public LinearLayout contentWithBG;
-        public AppCompatTextView citationResource;
+        public TextView citationResource;
         public TextView pages;
         public TextView pagesMark;
         public TextView numberOfTheMessage;
@@ -175,7 +175,7 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
             content = (LinearLayout) v.findViewById(R.id.content);
             contentWithBG = (LinearLayout) v.findViewById(R.id.contentWithBackground);
             txtInfo = (TextView) v.findViewById(R.id.txtInfo);
-            citationResource = (AppCompatTextView) v.findViewById(R.id.message_source);
+            citationResource = (TextView) v.findViewById(R.id.message_source);
             pagesMark = (TextView) v.findViewById(R.id.message_source_pages_mark);
             pages = (TextView) v.findViewById(R.id.message_source_pages);
             citationResourceContainer = (LinearLayout) v.findViewById(R.id.citation_resource_container);

@@ -22,7 +22,7 @@
         android:maxLines="1"
         android:text="From:"
         />
-    <android.support.v7.widget.AppCompatTextView
+    <TextView
         android:id="@+id/message_source"
         android:layout_width="0dp"
         android:layout_weight="1"

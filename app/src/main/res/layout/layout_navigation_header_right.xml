@@ -31,7 +31,7 @@
         android:layout_marginBottom="2dp"
         android:background="@color/gray_200_highlight"
         />
-    <android.support.v7.widget.AppCompatButton
+    <Button
         android:layout_marginTop="4dp"
         android:id="@+id/button_delete_this_theme"
         android:theme="@style/OtherButton"

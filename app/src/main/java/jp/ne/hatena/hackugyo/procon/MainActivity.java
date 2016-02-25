@@ -121,7 +121,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     private DrawerLayout drawerManager;
     private NavigationView drawerRight;
     private EditText themeEditText;
-    private AppCompatButton themeDeleteButton;
+    private Button themeDeleteButton;
 
     RecyclerViewEmptySupport mainRecyclerView, summaryRecyclerView;
     ChatLikeListAdapter mainListAdapter;
@@ -324,9 +324,9 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         return themeEditText;
     }
 
-    private AppCompatButton provideThemeDeleteButton() {
+    private Button provideThemeDeleteButton() {
         if (themeDeleteButton == null) {
-            themeDeleteButton = (AppCompatButton) provideRightDrawer().findViewById(R.id.button_delete_this_theme);
+            themeDeleteButton = (Button) provideRightDrawer().findViewById(R.id.button_delete_this_theme);
             themeDeleteButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
