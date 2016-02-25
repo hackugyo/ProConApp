@@ -10,12 +10,14 @@ import android.widget.EditText;
 import com.jakewharton.rxbinding.widget.RxTextView;
 import com.jakewharton.rxbinding.widget.TextViewAfterTextChangeEvent;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import jp.ne.hatena.hackugyo.procon.util.EditTextUtils;
 import jp.ne.hatena.hackugyo.procon.util.StringUtils;
 import jp.ne.hatena.hackugyo.procon.util.UrlUtils;
 import rx.Observable;
+import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.functions.Func2;
@@ -41,6 +43,12 @@ public class MainActivityViewProvider {
         contentEditText = (EditText) findViewById(R.id.editText);
         citationResourceEditText = (AutoCompleteTextView) findViewById(R.id.editText_from);
         citationResourceEditText.setAdapter(this.citationResourceSuggestionAdapter);
+        citationResourceEditText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (hasFocus && citationResourceEditText.getAdapter().getCount() > 0) citationResourceEditText.showDropDown();
+            }
+        });
         pagesEditText = (EditText) findViewById(R.id.editText_pages);
         addAsProButton = proButton;
         addAsConButton = conButton;
@@ -95,10 +103,21 @@ public class MainActivityViewProvider {
      * notifyDataSetChangedだと正しく更新されない
      * @param citationResources
      */
-    public void resetCitationResourceSuggestionAdapter(List<String> citationResources) {
-        citationResourceSuggestionAdapter.clear();
-        citationResourceSuggestionAdapter.addAll(citationResources);
-        citationResourceSuggestionAdapter.notifyDataSetChanged();
-        citationResourceEditText.setAdapter(citationResourceSuggestionAdapter);
+    public void resetCitationResourceSuggestionAdapterAsync(List<String> citationResources) {
+        Observable.just(new ArrayList<String>(citationResources))
+                .observeOn(AndroidSchedulers.mainThread())
+                .single(
+                        new Func1<List<String>, Boolean>() {
+                            @Override
+                            public Boolean call(List<String> strings) {
+                                citationResourceSuggestionAdapter.clear();
+                                citationResourceSuggestionAdapter.addAll(strings);
+                                citationResourceSuggestionAdapter.notifyDataSetChanged();
+                                citationResourceSuggestionAdapter.setNotifyOnChange(true);
+                                citationResourceEditText.setAdapter(citationResourceSuggestionAdapter);
+                                return true;
+                            }
+                        })
+                .subscribe();
     }
 }

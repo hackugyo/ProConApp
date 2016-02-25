@@ -17,4 +17,6 @@
     <string name="Dialog_Button_Label_Positive">OK</string>
     <string name="Dialog_Button_Label_Negative">キャンセル</string>
     <string name="message_pleasewait">しばらくお待ちください</string>
+
+    <string name="suggestion_hint_from">過去に入力した出典情報</string>
 </resources>

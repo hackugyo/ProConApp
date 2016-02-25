@@ -8,7 +8,6 @@ import android.os.Bundle;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
 import android.support.v4.widget.DrawerLayout;
-import android.support.v7.widget.AppCompatButton;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -566,7 +565,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         citationResources.clear();
         citationResources.addAll(MainActivityHelper.createNewCitationResources(memos, citationResourceRepository));
         // 表示の更新
-        viewProvider.resetCitationResourceSuggestionAdapter(citationResources);
+        viewProvider.resetCitationResourceSuggestionAdapterAsync(citationResources);
     }
 
 
@@ -724,6 +723,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
             case 5:
                 Bundle bundle = new Bundle();
                 bundle.putLong(ITEM_ID, itemId);
+                bundle.putStringArrayList(InputDialogFragment.SUGGESTION_STRINGS, new ArrayList<String>(citationResources));
                 bundle.putString(InputDialogFragment.DEFAULT_STRING, single.getCitationResource());
                 showDialogFragment(InputDialogFragment.newInstance(self, bundle, "出典編集", null), TAG_EDIT_CITATION_RESOURCE);
                 break;
