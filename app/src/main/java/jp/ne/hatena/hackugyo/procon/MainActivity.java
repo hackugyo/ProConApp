@@ -16,7 +16,6 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -31,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
+import jp.ne.hatena.hackugyo.procon.adapter.AutoCompleteSuggestionArrayAdapter;
 import jp.ne.hatena.hackugyo.procon.adapter.ChatLikeListAdapter;
 import jp.ne.hatena.hackugyo.procon.adapter.SummaryListAdapter;
 import jp.ne.hatena.hackugyo.procon.io.ImprovedTextCrawler;
@@ -47,6 +47,7 @@ import jp.ne.hatena.hackugyo.procon.ui.fragment.ConfirmDialogFragment;
 import jp.ne.hatena.hackugyo.procon.ui.fragment.InputDialogFragment;
 import jp.ne.hatena.hackugyo.procon.ui.widget.KeyboardClosingDrawerListener;
 import jp.ne.hatena.hackugyo.procon.ui.widget.RecyclerViewEmptySupport;
+import jp.ne.hatena.hackugyo.procon.util.ArrayUtils;
 import jp.ne.hatena.hackugyo.procon.util.EditTextUtils;
 import jp.ne.hatena.hackugyo.procon.util.LogUtils;
 import jp.ne.hatena.hackugyo.procon.util.StringUtils;
@@ -114,7 +115,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
     // メイン部分のView管理
     MainActivityViewProvider viewProvider;
-    private ArrayAdapter<String> citationResourceSuggestionAdapter;
+    private AutoCompleteSuggestionArrayAdapter citationResourceSuggestionAdapter;
     // Drawer内部のView
     private NavigationView drawerLeft;
     private DrawerLayout drawerManager;
@@ -167,7 +168,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         setupViews();
 
         reloadChatThemeList();
-        chatTheme = chatThemeList.get(0);
+        chatTheme = ArrayUtils.last(chatThemeList);
         reloadChatThemeMenu();
 
         //memo の表示
@@ -237,7 +238,6 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
      ****************************************/
 
     private void setupViews() {
-
         viewProvider = new MainActivityViewProvider(this, getCitationResourceSuggestionAdapter(), setupAddAsProButton(), setupAddAsConButton());
         provideRightDrawer();
         provideRightDrawerTitle();
@@ -434,6 +434,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         Memo memo = memos.get(position);
         if (memoRepository.delete(memo) == 1) {
             memos.remove(memo);
+            renewCitationResources();
             summaryListAdapter.reloadMemos(self.memos);
         } else {
             LogUtils.w("something wrong");
@@ -465,6 +466,12 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
                 @Override
                 public boolean onRecyclerLongClicked(View v, final int position) {
+                    if (memos.size() <= position) {
+                        LogUtils.w("あれ？" + memos.size() + " vs. " + position);
+                        return false;
+                    }
+                    //snackbar をクリックで消す処置
+                    if (snackbar != null) snackbar.dismiss();
                     Memo memo = memos.get(position);
                     ArrayList<EditModeEnum> items = new ArrayList<>();
                     {
@@ -549,9 +556,9 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         return chatTheme;
     }
 
-    public ArrayAdapter<String> getCitationResourceSuggestionAdapter() {
+    public AutoCompleteSuggestionArrayAdapter getCitationResourceSuggestionAdapter() {
         if (citationResourceSuggestionAdapter == null) {
-            citationResourceSuggestionAdapter = new ArrayAdapter<String>(
+            citationResourceSuggestionAdapter = new AutoCompleteSuggestionArrayAdapter(
                     this,
                     android.R.layout.simple_dropdown_item_1line,
                     citationResources

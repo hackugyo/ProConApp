@@ -219,4 +219,8 @@ public class ArrayUtils {
     public static String last(String[] split) {
         return split.length == 0 ? null : split[split.length - 1];
     }
+
+    public static <T> T last(List<T> list) {
+        return list.get(list.size() - 1);
+    }
 }

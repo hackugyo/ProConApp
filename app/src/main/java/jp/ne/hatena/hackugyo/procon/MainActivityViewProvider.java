@@ -2,7 +2,6 @@ package jp.ne.hatena.hackugyo.procon;
 
 import android.app.Activity;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
@@ -13,6 +12,7 @@ import com.jakewharton.rxbinding.widget.TextViewAfterTextChangeEvent;
 import java.util.ArrayList;
 import java.util.List;
 
+import jp.ne.hatena.hackugyo.procon.adapter.AutoCompleteSuggestionArrayAdapter;
 import jp.ne.hatena.hackugyo.procon.util.EditTextUtils;
 import jp.ne.hatena.hackugyo.procon.util.StringUtils;
 import jp.ne.hatena.hackugyo.procon.util.UrlUtils;
@@ -27,7 +27,7 @@ import rx.functions.Func2;
  */
 public class MainActivityViewProvider {
     private final Activity activity;
-    private final ArrayAdapter<String> citationResourceSuggestionAdapter;
+    private final AutoCompleteSuggestionArrayAdapter citationResourceSuggestionAdapter;
     private final MainActivityViewProvider viewProvider = this;
 
 
@@ -36,7 +36,7 @@ public class MainActivityViewProvider {
     AutoCompleteTextView citationResourceEditText;
     Button addAsProButton, addAsConButton;
 
-    public MainActivityViewProvider(Activity activity, ArrayAdapter<String> citationResourceSuggestionAdapter, Button proButton, Button conButton) {
+    public MainActivityViewProvider(Activity activity, AutoCompleteSuggestionArrayAdapter citationResourceSuggestionAdapter, Button proButton, Button conButton) {
         this.activity = activity;
         this.citationResourceSuggestionAdapter = citationResourceSuggestionAdapter;
 
@@ -110,14 +110,15 @@ public class MainActivityViewProvider {
                         new Func1<List<String>, Boolean>() {
                             @Override
                             public Boolean call(List<String> strings) {
+                                citationResourceSuggestionAdapter.setNotifyOnChange(true);
                                 citationResourceSuggestionAdapter.clear();
                                 citationResourceSuggestionAdapter.addAll(strings);
-                                citationResourceSuggestionAdapter.notifyDataSetChanged();
-                                citationResourceSuggestionAdapter.setNotifyOnChange(true);
+                                // 不要。addAllで呼ばれている citationResourceSuggestionAdapter.notifyDataSetChanged();
                                 citationResourceEditText.setAdapter(citationResourceSuggestionAdapter);
                                 return true;
                             }
                         })
                 .subscribe();
     }
+
 }
