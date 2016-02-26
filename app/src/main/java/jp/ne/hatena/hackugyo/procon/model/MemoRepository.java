@@ -132,7 +132,15 @@ public class MemoRepository {
      *******************************/
 
     private int deleteMemoCitationResource(Memo memo) throws SQLException {
-        return memoCitationResourceQueryBuilder.deleteMiddleForFirst(memo);
+        int result =  memoCitationResourceQueryBuilder.deleteMiddleForFirst(memo);
+        // Memoに紐付く中間テーブルが消えると，腐る典拠情報があるので掃除する
+        int deletedIsolatedCitationResource =
+                memoCitationResourceQueryBuilder.makeDeleteSecondsForIsolatedQuery(
+                        citationResourceDao,
+                        CitationResource.ID_FIELD_NAME)
+                        .delete();
+        LogUtils.d("不要になった典拠: " + deletedIsolatedCitationResource);
+        return result;
     }
 
     private List<Memo> lookupCitationResource(List<Memo> memos) {

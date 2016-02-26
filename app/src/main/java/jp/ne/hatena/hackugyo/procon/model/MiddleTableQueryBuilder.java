@@ -72,6 +72,7 @@ public class MiddleTableQueryBuilder<T extends MiddleModel> {
         return firstQb;
     }
 
+
     /**
      * 中間テーブルで関連づけが記録されているレコードだけを、第2のテーブルから取得するクエリを作ります。
      * @param secondDao
@@ -92,6 +93,28 @@ public class MiddleTableQueryBuilder<T extends MiddleModel> {
         QueryBuilder<U, Integer> secondQb = secondDao.queryBuilder();
         secondQb.where().in(idColumnForSecond, single);
         return secondQb;
+    }
+
+    /**
+     * 中間テーブルで関連づけが記録されていない（腐った）レコードだけを、第2のテーブルから削除するクエリを作ります。
+     * @param secondDao
+     * @param idColumnForSecond
+     * @param <U>
+     * @return
+     * @throws SQLException
+     */
+    public <U> DeleteBuilder<U, Integer> makeDeleteSecondsForIsolatedQuery(Dao<U, Integer> secondDao, String idColumnForSecond) throws SQLException {
+        QueryBuilder<T, Integer> middleQb = middleTableDao.queryBuilder();
+        List<T> query = middleQb.distinct().selectColumns(this.idNameForSecond).query();
+        List<Long> single = Observable.from(query).map(new Func1<T, Long>() {
+            @Override
+            public Long call(T t) {
+                return t.getIdForSecond();
+            }
+        }).toList().toBlocking().single();
+        DeleteBuilder<U, Integer> secondDeleteQb = secondDao.deleteBuilder();
+        secondDeleteQb.where().notIn(idColumnForSecond, single);
+        return secondDeleteQb;
     }
 
     /**
