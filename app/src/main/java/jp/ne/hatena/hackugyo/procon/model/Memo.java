@@ -163,4 +163,17 @@ public class Memo {
         }
     }
 
+
+    @Override
+    public String toString() {
+        String s = super.toString();
+        return StringUtils.build(s, "{",
+                "id: ", StringUtils.valueOf(id),
+                ", memo: ", memo,
+                ", date: ", getDate(),
+                ", isPro: ", StringUtils.valueOf(isPro()),
+                ", pages: ", pages,
+                ", chatTheme: ", StringUtils.valueOf(chatTheme.getId()),
+                "}");
+    }
 }

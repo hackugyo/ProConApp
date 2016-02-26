@@ -9,6 +9,10 @@ import com.j256.ormlite.stmt.SelectArg;
 import com.j256.ormlite.stmt.StatementBuilder;
 
 import java.sql.SQLException;
+import java.util.List;
+
+import rx.Observable;
+import rx.functions.Func1;
 
 /**
  * 多対多の中間テーブルを管理するクエリを準備するクラス。
@@ -46,6 +50,49 @@ public class MiddleTableQueryBuilder<T extends MiddleModel> {
         return middleTableDao.delete(deleteMiddleForSecondQuery);
     }
 
+    /**
+     * 中間テーブルで関連づけが記録されているレコードだけを、第1のテーブルから取得するクエリを作ります。
+     * @param <U>
+     * @param firstDao
+     * @param idColumnForFirst
+     * @return
+     * @throws SQLException
+     */
+    public <U> QueryBuilder<U, Integer> makeFirstsForAllQuery(Dao<U, Integer> firstDao, String idColumnForFirst) throws SQLException {
+        QueryBuilder<T, Integer> middleQb = middleTableDao.queryBuilder();
+        List<T> query = middleQb.distinct().selectColumns(this.idNameForFirst).query();
+        List<Long> single = Observable.from(query).map(new Func1<T, Long>() {
+            @Override
+            public Long call(T t) {
+                return t.getIdForFirst();
+            }
+        }).toList().toBlocking().single();
+        QueryBuilder<U, Integer> firstQb = firstDao.queryBuilder();
+        firstQb.where().in(idColumnForFirst, single).prepare();
+        return firstQb;
+    }
+
+    /**
+     * 中間テーブルで関連づけが記録されているレコードだけを、第2のテーブルから取得するクエリを作ります。
+     * @param secondDao
+     * @param idColumnForSecond
+     * @param <U>
+     * @return
+     * @throws SQLException
+     */
+    public <U> QueryBuilder<U, Integer> makeSecondsForAllQuery(Dao<U, Integer> secondDao, String idColumnForSecond) throws SQLException {
+        QueryBuilder<T, Integer> middleQb = middleTableDao.queryBuilder();
+        List<T> query = middleQb.distinct().selectColumns(this.idNameForSecond).query();
+        List<Long> single = Observable.from(query).map(new Func1<T, Long>() {
+            @Override
+            public Long call(T t) {
+                return t.getIdForSecond();
+            }
+        }).toList().toBlocking().single();
+        QueryBuilder<U, Integer> secondQb = secondDao.queryBuilder();
+        secondQb.where().in(idColumnForSecond, single);
+        return secondQb;
+    }
 
     /**
      * Build our query for CitationResource objects that match a Memo.

@@ -2,6 +2,8 @@ package jp.ne.hatena.hackugyo.procon.model;
 
 import com.j256.ormlite.field.DatabaseField;
 
+import jp.ne.hatena.hackugyo.procon.util.StringUtils;
+
 /**
  * 個々のメモと引用リソースとを多対多でつなぐための中間テーブル
  */
@@ -30,5 +32,24 @@ public class MemoCitationResource implements MiddleModel {
     public MemoCitationResource(Memo memo, CitationResource citationResource) {
         this.memo = memo;
         this.citationResource = citationResource;
+    }
+
+    @Override
+    public String toString() {
+        String s = super.toString();
+        return StringUtils.build(s,
+                "{memo {", (memo == null ? "null" : memo.toString()),
+                "} to citationResource{", (citationResource == null ? "null" : citationResource.toString()),
+                "}}");
+    }
+
+    @Override
+    public long getIdForFirst() {
+        return memo == null ? -1 : memo.getId();
+    }
+
+    @Override
+    public long getIdForSecond() {
+        return citationResource == null ? -1 : citationResource.id;
     }
 }

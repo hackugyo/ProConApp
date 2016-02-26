@@ -256,7 +256,7 @@ public class MainActivityHelper {
             memoObservable = Observable.merge(
                     memoObservable,
                     Observable
-                            .from(repo.findAll())
+                            .from(repo.findAllWithoutIsolated())
                             .map(new Func1<CitationResource, String>() {
                                 @Override
                                 public String call(CitationResource citationResource) {
@@ -272,7 +272,7 @@ public class MainActivityHelper {
                     }
                 })
                 .distinct()
-                .toList().toBlocking().single();
+                .toSortedList().toBlocking().single();
     }
 
 }
