@@ -144,7 +144,7 @@ public class MainActivityHelper {
                                     handler.post(new Runnable() {
                                         @Override
                                         public void run() {
-                                            if (adapter.getItemCount() < i){
+                                            if (i < adapter.getItemCount()){
                                                 adapter.notifyItemChanged(i);
                                             }
                                         }
