@@ -242,6 +242,13 @@ public class MainActivityHelper {
         return sourceContent;
     }
 
+    private static Func1<String, Boolean> sIgnoreUrlFilter = new Func1<String, Boolean>() {
+        @Override
+        public Boolean call(String s) {
+            return !StringUtils.isEmpty(s) && !UrlUtils.isValidUrl(StringUtils.stripLast(s));
+        }
+    };
+
     static List<String> createNewCitationResources(List<Memo> memos, CitationResourceRepository repo) {
 
         Observable<String> memoObservable = Observable
@@ -252,9 +259,10 @@ public class MainActivityHelper {
                     public String call(Memo memo) {
                         return memo.getCitationResource();
                     }
-                });
-        // 気を利かせて、メモが1つ未満のときはすべての議題を検索して候補を提示する
-        if (memos.size() <= 1) {
+                })
+                .filter(sIgnoreUrlFilter);
+        // 気を利かせて、候補なしのときはすべての議題を検索して、候補を提示する
+        if (memoObservable.count().toBlocking().single() < 1) {
             memoObservable = Observable.merge(
                     memoObservable,
                     Observable
@@ -264,15 +272,11 @@ public class MainActivityHelper {
                                 public String call(CitationResource citationResource) {
                                     return citationResource.getName();
                                 }
-                            }));
+                            })
+                            .filter(sIgnoreUrlFilter)
+            );
         }
         return memoObservable
-                .filter(new Func1<String, Boolean>() {
-                    @Override
-                    public Boolean call(String s) {
-                        return !StringUtils.isEmpty(s) && !UrlUtils.isValidUrl(s.replaceAll("\\s+$", ""));
-                    }
-                })
                 .distinct()
                 .toSortedList().toBlocking().single();
     }
