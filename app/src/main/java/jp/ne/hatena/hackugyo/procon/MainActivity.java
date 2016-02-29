@@ -16,6 +16,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -115,7 +116,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
     // メイン部分のView管理
     MainActivityViewProvider viewProvider;
-    private AutoCompleteSuggestionArrayAdapter citationResourceSuggestionAdapter;
+    private ArrayAdapter citationResourceSuggestionAdapter;
     // Drawer内部のView
     private NavigationView drawerLeft;
     private DrawerLayout drawerManager;
@@ -555,7 +556,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         return chatTheme;
     }
 
-    public AutoCompleteSuggestionArrayAdapter getCitationResourceSuggestionAdapter() {
+    public ArrayAdapter getCitationResourceSuggestionAdapter() {
         if (citationResourceSuggestionAdapter == null) {
             citationResourceSuggestionAdapter = new AutoCompleteSuggestionArrayAdapter(
                     this,
