@@ -784,10 +784,12 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
             single.setCitationResources(null);
             single.addCitationResource(args.getString(InputDialogFragment.RESULT, ""));
             single.setLoaded(true);
-            memoRepository.save(single);
-            mainListAdapter.notifyItemChanged(memos.indexOf(single));
-            if (isForUrlCurrently) {
-                mainActivityHelper.forceReloadPreviewAsync(single);
+            if (memoRepository.save(single)) {
+                mainListAdapter.notifyItemChanged(memos.indexOf(single));
+                renewCitationResources();
+                if (isForUrlCurrently) {
+                    mainActivityHelper.forceReloadPreviewAsync(single);
+                }
             }
         }
     }
