@@ -93,7 +93,9 @@ public class MemoRepository {
                 return i;
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            LogUtils.e("Cannot delete " + memo.toString(), e);
+        } catch (IllegalStateException e) {
+            LogUtils.w("Maybe attempt to re-open an already-closed object.");
         }
         return 0;
     }

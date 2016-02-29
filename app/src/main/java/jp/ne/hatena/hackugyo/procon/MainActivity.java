@@ -429,9 +429,8 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         return memo;
     }
 
-    private void deleteMemo(int position) {
+    private void deleteMemo(Memo memo) {
         //memo を消去する
-        Memo memo = memos.get(position);
         if (memoRepository.delete(memo) == 1) {
             memos.remove(memo);
             renewCitationResources();
@@ -916,7 +915,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                                 .single();
                         if (single != null) {
                             if (single.isRemoved()) {
-                                deleteMemo(memos.indexOf(single));
+                                deleteMemo(single);
                                 mainListAdapter.notifyDataSetChanged();
                             }
                         }
