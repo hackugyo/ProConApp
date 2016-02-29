@@ -15,6 +15,7 @@ import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.SubMenu;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -588,12 +589,17 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         final Menu menu = drawerLeft.getMenu();
         final MenuItem item = menu.findItem(R.id.menu_group_sub);
 
-        item.getSubMenu().clear();
+        if (item != null) {
+            SubMenu subMenu = item.getSubMenu();
+            if (subMenu != null) {
+                subMenu.clear();
 
-        if (chatThemeList.size() == 0) chatTheme = createInitialChatTheme();
-        for (ChatTheme theme : chatThemeList) {
-            MenuItem add = item.getSubMenu().add(R.id.menu_group_sub_child, theme.getId().intValue(), Menu.NONE, theme.getTitle());
-            add.setChecked(theme.getId() == chatTheme.getId());
+                if (chatThemeList.size() == 0) chatTheme = createInitialChatTheme();
+                for (ChatTheme theme : chatThemeList) {
+                    MenuItem add = subMenu.add(R.id.menu_group_sub_child, theme.getId().intValue(), Menu.NONE, theme.getTitle());
+                    add.setChecked(theme.getId() == chatTheme.getId());
+                }
+            }
         }
 
         getSupportActionBar().setTitle(chatTheme.getTitle());
