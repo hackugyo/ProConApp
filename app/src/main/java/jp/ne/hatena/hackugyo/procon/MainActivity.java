@@ -419,7 +419,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     private Memo insertMemo(String text, Calendar cal, String resource, String pages, boolean isPro) {
         //memo を追加し、セーブする
         Memo memo = new Memo(cal, text, isPro);
-        memo.addCitationResource(resource.replaceAll("\\s+$", ""));
+        memo.addCitationResource(StringUtils.stripLast(resource));
         memo.setPages(pages);
         memo.setChatTheme(chatTheme);
         if(memoRepository.save(memo)) {

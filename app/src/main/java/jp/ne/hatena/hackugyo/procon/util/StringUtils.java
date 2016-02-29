@@ -470,4 +470,12 @@ public final class StringUtils {
         return Pattern.compile(regex).matcher(value).replaceAll(replacement);
     }
 
+    /**
+     * 末尾のspaceを削除する正規表現
+     * @param value
+     * @return
+     */
+    public static String stripLast(String value) {
+        return value.replaceAll("\\s+$", "");
+    }
 }

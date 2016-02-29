@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import jp.ne.hatena.hackugyo.procon.util.LogUtils;
+import jp.ne.hatena.hackugyo.procon.util.StringUtils;
 
 /**
  * Created by kwatanabe on 16/02/12.
@@ -138,7 +139,7 @@ public class ImprovedTextCrawler {
     }
 
     public static String extendedTrim(String content) {
-        return content.replaceAll("\\s+", " ").replace("\n", " ").replace("\r", " ").trim();
+        return StringUtils.stripLast(content).replace("\n", " ").replace("\r", " ").trim();
     }
 
 
