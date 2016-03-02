@@ -3,6 +3,7 @@ package jp.ne.hatena.hackugyo.procon;
 import android.app.Application;
 import android.content.Context;
 
+import com.github.kubode.rxeventbus.RxEventBus;
 import com.squareup.okhttp.Cache;
 import com.squareup.okhttp.Interceptor;
 import com.squareup.okhttp.OkHttpClient;
@@ -31,8 +32,11 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
+import jp.ne.hatena.hackugyo.procon.event.DatabaseService;
+import jp.ne.hatena.hackugyo.procon.event.RxBusProvider;
 import jp.ne.hatena.hackugyo.procon.model.ChatTheme;
 import jp.ne.hatena.hackugyo.procon.model.ChatThemeRepository;
+import jp.ne.hatena.hackugyo.procon.model.MemoRepository;
 import jp.ne.hatena.hackugyo.procon.util.LogUtils;
 import retrofit.GsonConverterFactory;
 import retrofit.Retrofit;
@@ -44,6 +48,8 @@ public class AppApplication extends Application {
 
     private static Context sContext;
     private OkHttpClient mOkHttpClient;
+    private RxEventBus bus;
+    private DatabaseService databaseService;
 
     @Override
     public void onCreate() {
@@ -67,6 +73,11 @@ public class AppApplication extends Application {
             chatThemeRepository.save(new ChatTheme("最初の議題"));
         }
         chatThemeRepository.onPause(); // 停止
+
+        bus = RxBusProvider.getInstance();
+
+        databaseService = new DatabaseService(this, bus, new MemoRepository(this));
+        // unregisterをする必要はない。#onTerminate()はテスト用メソッドのため、呼ばれない
     }
 
     public static OkHttpClient provideOkHttpClient(Context context) {

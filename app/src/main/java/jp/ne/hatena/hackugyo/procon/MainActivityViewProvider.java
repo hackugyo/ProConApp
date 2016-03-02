@@ -99,6 +99,13 @@ public class MainActivityViewProvider {
         viewProvider.pagesEditText.getEditableText().clear();
     }
 
+    public void resumeInputTexts(String memo, String citationResource, String pages) {
+
+        viewProvider.contentEditText.setText(memo);
+        viewProvider.citationResourceEditText.setText(citationResource);
+        viewProvider.pagesEditText.setText(pages);
+    }
+
     /**
      * notifyDataSetChangedだと正しく更新されない
      * @param citationResources

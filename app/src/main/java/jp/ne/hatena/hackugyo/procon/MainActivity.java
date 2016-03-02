@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
+import android.support.v4.util.Pair;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -35,6 +36,11 @@ import java.util.List;
 import jp.ne.hatena.hackugyo.procon.adapter.AutoCompleteSuggestionArrayAdapter;
 import jp.ne.hatena.hackugyo.procon.adapter.ChatLikeListAdapter;
 import jp.ne.hatena.hackugyo.procon.adapter.SummaryListAdapter;
+import jp.ne.hatena.hackugyo.procon.event.DataDeletedEvent;
+import jp.ne.hatena.hackugyo.procon.event.DataSavedEvent;
+import jp.ne.hatena.hackugyo.procon.event.RequestDataDeleteEvent;
+import jp.ne.hatena.hackugyo.procon.event.RequestDataSaveEvent;
+import jp.ne.hatena.hackugyo.procon.event.RxBusProvider;
 import jp.ne.hatena.hackugyo.procon.io.ImprovedTextCrawler;
 import jp.ne.hatena.hackugyo.procon.model.ChatTheme;
 import jp.ne.hatena.hackugyo.procon.model.ChatThemeRepository;
@@ -61,6 +67,7 @@ import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
+import rx.subscriptions.CompositeSubscription;
 
 public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFragment.Callbacks {
 
@@ -72,6 +79,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
     public static final String ITEM_ID = "MainActivity.ITEM_ID";
     public static final String CHOICE_IDS = "MainActivity.CHOICE_IDS";
+    private CompositeSubscription compositeSubscription;
 
     /**
      * 長押しからのアイテム編集モード
@@ -205,6 +213,26 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     @Override
     protected void onResume() {
         super.onResume();
+        compositeSubscription = new CompositeSubscription();
+        compositeSubscription.add(
+                RxBusProvider.getInstance()
+                        .subscribe(DataSavedEvent.class, new Action1<DataSavedEvent>() {
+                            @Override
+                            public void call(DataSavedEvent dataSavedEvent) {
+                                onMemoSaved(dataSavedEvent);
+                            }
+                        }, AndroidSchedulers.mainThread())
+        );
+        compositeSubscription.add(
+                RxBusProvider.getInstance()
+                        .subscribe(DataDeletedEvent.class, new Action1<DataDeletedEvent>() {
+                            @Override
+                            public void call(DataDeletedEvent dataDeletedEvent) {
+                                onMemoDeleted(dataDeletedEvent);
+                            }
+                        }, AndroidSchedulers.mainThread())
+        );
+
         memoRepository.onResume(this);
         chatThemeRepository.onResume(this);
         citationResourceRepository.onResume(this);
@@ -213,6 +241,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     @Override
     protected void onPause() {
         super.onPause();
+        if (compositeSubscription != null) compositeSubscription.unsubscribe();
         if (memoRepository != null) memoRepository.onPause();
         if (chatThemeRepository != null) chatThemeRepository.onPause();
         if (citationResourceRepository != null) citationResourceRepository.onPause();
@@ -405,43 +434,72 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         if (StringUtils.isPresent(content) || UrlUtils.isValidUrl(citationResource)) {
             Calendar cal = Calendar.getInstance();
             //保存処置
-            Memo newMemo = insertMemo(content, cal, citationResource, viewProvider.pagesEditText.getText().toString(), asPro);
-            //ListView に設置
-            mainListAdapter.notifyDataSetChanged();
+            insertMemoAsync(content, cal, citationResource, viewProvider.pagesEditText.getText().toString(), asPro);
             //Keyboard の消去，EditText 内のデータ消去
             viewProvider.resetInputTexts(v);
 
             mainRecyclerView.smoothScrollToPosition(mainListAdapter.getItemCount() - 1);
-
-            mainActivityHelper.loadPreviewAsync(newMemo);
         }
     }
 
-    private Memo insertMemo(String text, Calendar cal, String resource, String pages, boolean isPro) {
+    private void insertMemoAsync(String text, Calendar cal, String resource, String pages, boolean isPro) {
         //memo を追加し、セーブする
         Memo memo = new Memo(cal, text, isPro);
         memo.addCitationResource(StringUtils.stripLast(resource));
         memo.setPages(pages);
         memo.setChatTheme(chatTheme);
-        if(memoRepository.save(memo)) {
-            memos.add(memo);
-            renewCitationResources();
-            summaryListAdapter.reloadMemos(self.memos);
-        }
-        return memo;
+        RxBusProvider.getInstance().post(new RequestDataSaveEvent(memo));
     }
 
-    private void deleteMemo(Memo memo) {
+    private void deleteMemoAsync(Memo memo) {
         //memo を消去する
-        if (memoRepository.delete(memo) == 1) {
-            memos.remove(memo);
-            renewCitationResources();
-            summaryListAdapter.reloadMemos(self.memos);
+        RxBusProvider.getInstance().post(new RequestDataDeleteEvent(memo));
+    }
+
+    private void onMemoSaved(DataSavedEvent event) {
+        Memo savedMemo = event.savedMemo;
+        Memo inList = findById(memos, savedMemo.getId());
+        if (event.isSuccess) {
+            if (inList == null) {
+                memos.add(savedMemo);
+                renewCitationResources();
+                //ListView に設置
+                mainListAdapter.notifyDataSetChanged();
+                summaryListAdapter.reloadMemos(self.memos);
+                mainRecyclerView.smoothScrollToPosition(mainListAdapter.getItemCount() - 1);
+                mainActivityHelper.loadPreviewAsync(savedMemo);
+            } else {
+                mainListAdapter.notifyItemChanged(memos.indexOf(inList));
+            }
         } else {
             LogUtils.w("something wrong");
+            viewProvider.resumeInputTexts((inList.isForUrl() ? "" : inList.getMemo()), inList.getCitationResource(), inList.getPages());
         }
     }
 
+    private void onMemoDeleted(DataDeletedEvent deleted) {
+        for (Pair<Long, Boolean> result : deleted.pairs) {
+            Memo inList = findById(memos, result.first);
+            if (result.second) {
+                memos.remove(inList);
+            } else {
+                LogUtils.w("something wrong");
+                if (inList != null) inList.setRemoved(false);
+            }
+        }
+        renewCitationResources();
+        summaryListAdapter.reloadMemos(self.memos);
+        mainListAdapter.notifyDataSetChanged();
+    }
+
+    private static Memo findById(List<Memo> memo, final long memoId) {
+        return Observable.from(memo).firstOrDefault(null, new Func1<Memo, Boolean>() {
+            @Override
+            public Boolean call(Memo memo) {
+                return memo.getId() == memoId;
+            }
+        }).toBlocking().single();
+    }
 
     /****************************************
      * {@link RecyclerClickable}
@@ -553,6 +611,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     private ChatTheme createInitialChatTheme(String title) {
         ChatTheme chatTheme = new ChatTheme(title);
         chatThemeRepository.save(chatTheme);// ここでIDがセットされる
+
         chatThemeList.add(chatTheme);
         return chatTheme;
     }
@@ -665,7 +724,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         } else if (StringUtils.isSame(tag, TAG_CHOOSE_EDIT_MODE)) {
             processEditingResult(args.getLong(ITEM_ID), args.getIntegerArrayList(CHOICE_IDS), which);
         } else if (StringUtils.isSame(tag, TAG_EDIT_CONTENT)) {
-            setContentAt(args);
+            setContentAtAsync(args);
         } else if (StringUtils.isSame(tag, TAG_EDIT_CITATION_RESOURCE)) {
             setCitationResourceAt(args);
         } else {
@@ -692,15 +751,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     }
 
     private void processEditingResult(final long itemId, List<Integer> choiceIds, int which) {
-        Memo single = Observable.from(memos)
-                .firstOrDefault(null, new Func1<Memo, Boolean>() {
-                    @Override
-                    public Boolean call(Memo memo) {
-                        return memo.getId() == itemId;
-                    }
-                })
-                .toBlocking()
-                .single();
+        Memo single = findById(memos, itemId);
         if (single == null) {
             LogUtils.w("something wrong. " + itemId);
             return;
@@ -750,24 +801,14 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
      * @param args
      * @return URL用のアイテムだった場合は本文を編集しない。
      */
-    private boolean setContentAt(Bundle args) {
+    private void setContentAtAsync(Bundle args) {
         final long itemId = args.getLong(ITEM_ID);
-        Memo single = Observable.from(memos)
-                .firstOrDefault(null, new Func1<Memo, Boolean>() {
-                    @Override
-                    public Boolean call(Memo memo) {
-                        return memo.getId() == itemId;
-                    }
-                })
-                .toBlocking()
-                .single();
+        Memo single = findById(memos, itemId);
         if (single == null || single.isForUrl() || !args.containsKey(InputDialogFragment.RESULT)) {
-            return false;
+            LogUtils.w("Something wrong. " + single);
         } else {
             single.setMemo(args.getString(InputDialogFragment.RESULT, ""));
-            memoRepository.save(single);
-            mainListAdapter.notifyItemChanged(memos.indexOf(single));
-            return true;
+            RxBusProvider.getInstance().post(new RequestDataSaveEvent(single));
         }
     }
 
@@ -777,15 +818,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
      */
     private void setCitationResourceAt(Bundle args) {
         final long itemId = args.getLong(ITEM_ID);
-        Memo single = Observable.from(memos)
-                .firstOrDefault(null, new Func1<Memo, Boolean>() {
-                    @Override
-                    public Boolean call(Memo memo) {
-                        return memo.getId() == itemId;
-                    }
-                })
-                .toBlocking()
-                .single();
+        Memo single = findById(memos, itemId);
         if (single != null && args.containsKey(InputDialogFragment.RESULT)) {
             boolean isForUrlCurrently = single.isForUrl();
             single.setCitationResources(null);
@@ -892,15 +925,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                 .setAction("戻す", new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        Memo single = Observable.from(memos)
-                                .firstOrDefault(null, new Func1<Memo, Boolean>() {
-                                    @Override
-                                    public Boolean call(Memo memo) {
-                                        return memo.getId() == itemId;
-                                    }
-                                })
-                                .toBlocking()
-                                .single();
+                        Memo single = findById(memos, itemId);
                         if (single != null) {
                             single.setRemoved(false);
                             int index = memos.indexOf(single);
@@ -913,19 +938,10 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                     @Override
                     public void onDismissed(Snackbar snackbar, int event) {
                         super.onDismissed(snackbar, event);
-                        Memo single = Observable.from(memos)
-                                .firstOrDefault(null, new Func1<Memo, Boolean>() {
-                                    @Override
-                                    public Boolean call(Memo memo) {
-                                        return memo.getId() == itemId;
-                                    }
-                                })
-                                .toBlocking()
-                                .single();
+                        Memo single = findById(memos, itemId);
                         if (single != null) {
                             if (single.isRemoved()) {
-                                deleteMemo(single);
-                                mainListAdapter.notifyDataSetChanged();
+                                deleteMemoAsync(single);
                             }
                         }
                     }
