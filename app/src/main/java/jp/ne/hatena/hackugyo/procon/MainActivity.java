@@ -49,6 +49,7 @@ import jp.ne.hatena.hackugyo.procon.event.RxBusProvider;
 import jp.ne.hatena.hackugyo.procon.io.ImprovedTextCrawler;
 import jp.ne.hatena.hackugyo.procon.model.ChatTheme;
 import jp.ne.hatena.hackugyo.procon.model.ChatThemeRepository;
+import jp.ne.hatena.hackugyo.procon.model.CitationResource;
 import jp.ne.hatena.hackugyo.procon.model.CitationResourceRepository;
 import jp.ne.hatena.hackugyo.procon.model.Memo;
 import jp.ne.hatena.hackugyo.procon.model.MemoRepository;
@@ -564,6 +565,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
             //保存処置
             Memo memo = createMemo(content, cal, citationResource, viewProvider.pagesEditText.getText().toString(), asPro);
             if (viewProvider.getImageUri() != null) {
+                if (!ArrayUtils.any(memo.getCitationResources())) memo.addCitationResource("画像取り込み");
                 memo.addCitationResource(viewProvider.getImageUri().toString());
             }
             insertMemoAsync(memo);
@@ -1029,8 +1031,12 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         Memo single = findById(memos, itemId);
         if (single != null && args.containsKey(InputDialogFragment.RESULT)) {
             boolean isForUrlCurrently = single.isForUrl();
-            single.setCitationResources(null);
-            single.addCitationResource(args.getString(InputDialogFragment.RESULT, ""));
+            List<CitationResource> citationResources = single.getCitationResources();
+            if (ArrayUtils.any(citationResources)) {
+                citationResources.set(0, new CitationResource(args.getString(InputDialogFragment.RESULT, "")));
+            } else {
+                single.addCitationResource(args.getString(InputDialogFragment.RESULT, ""));
+            }
             single.setLoaded(true);
             if (memoRepository.save(single)) {
                 mainListAdapter.notifyItemChanged(memos.indexOf(single));

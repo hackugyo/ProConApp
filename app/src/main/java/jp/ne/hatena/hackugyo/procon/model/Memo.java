@@ -113,14 +113,15 @@ public class Memo {
     }
 
     public boolean isWithPhoto() {
-        return !isForUrl() && Observable.from(getCitationResources())
-                .filter(new Func1<CitationResource, Boolean>() {
-                    @Override
-                    public Boolean call(CitationResource citationResource) {
-                        return UrlUtils.isValidUri(citationResource.getName());
-                    }
-                })
-                .firstOrDefault(null).toBlocking().single() != null;
+        return !isForUrl() && getCitationResources() != null &&
+                Observable.from(getCitationResources())
+                        .filter(new Func1<CitationResource, Boolean>() {
+                            @Override
+                            public Boolean call(CitationResource citationResource) {
+                                return UrlUtils.isValidUri(citationResource.getName());
+                            }
+                        })
+                        .firstOrDefault(null).toBlocking().single() != null;
     }
 
     public void setLoaded(boolean isLoaded) {
