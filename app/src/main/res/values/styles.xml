@@ -43,27 +43,4 @@
     <style name="TextAppearance.Button" parent="Base.TextAppearance.AppCompat.Button">
         <item name="android:textColor">@color/button_text_color_light</item>
     </style>
-
-    <style name="ProsSaveButton" parent="Widget.AppCompat.Button">
-        <!-- colorButtonNormalでstate_enable = false 以外を色設定しても、Android 4.4以前では適用されない。 -->
-        <item name="colorButtonNormal">@color/button_color_pros</item>
-        <item name="colorControlHighlight">@color/transparent_black</item>
-        <item name="android:textAppearanceButton">@style/TextAppearance.Button</item>
-        <item name="android:borderlessButtonStyle">@style/Widget.AppCompat.Button.Borderless</item>
-    </style>
-
-    <style name="ConsSaveButton" parent="Widget.AppCompat.Button">
-        <!-- colorButtonNormalでstate_enable = false 以外を色設定しても、Android 4.4以前では適用されない。 -->
-        <item name="colorButtonNormal">@color/button_color_cons</item>
-        <item name="colorControlHighlight">@color/transparent_black</item>
-        <item name="android:textAppearanceButton">@style/TextAppearance.Button</item>
-        <item name="android:borderlessButtonStyle">@style/Widget.AppCompat.Button.Borderless</item>
-    </style>
-    <style name="OtherButton" parent="Widget.AppCompat.Button">
-        <!-- colorButtonNormalでstate_enable = false 以外を色設定しても、Android 4.4以前では適用されない。 -->
-        <item name="colorButtonNormal">@color/button_color</item>
-        <item name="colorControlHighlight">@color/transparent_black</item>
-        <item name="android:textAppearanceButton">@style/TextAppearance.Button</item>
-        <item name="android:borderlessButtonStyle">@style/Widget.AppCompat.Button.Borderless</item>
-    </style>
 </resources>

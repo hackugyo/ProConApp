@@ -3,8 +3,12 @@ package jp.ne.hatena.hackugyo.procon;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
 import android.support.v4.util.Pair;
@@ -19,16 +23,17 @@ import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.beardedhen.androidbootstrap.BootstrapButton;
 import com.jakewharton.rxbinding.view.RxView;
 import com.jakewharton.rxbinding.widget.RxTextView;
 import com.jakewharton.rxbinding.widget.TextViewEditorActionEvent;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -52,7 +57,9 @@ import jp.ne.hatena.hackugyo.procon.ui.RecyclerClickable;
 import jp.ne.hatena.hackugyo.procon.ui.fragment.AbsCustomDialogFragment;
 import jp.ne.hatena.hackugyo.procon.ui.fragment.ChoiceDialogFragment;
 import jp.ne.hatena.hackugyo.procon.ui.fragment.ConfirmDialogFragment;
+import jp.ne.hatena.hackugyo.procon.ui.fragment.ImageDialogFragment;
 import jp.ne.hatena.hackugyo.procon.ui.fragment.InputDialogFragment;
+import jp.ne.hatena.hackugyo.procon.ui.widget.CustomBootStrapBrand;
 import jp.ne.hatena.hackugyo.procon.ui.widget.KeyboardClosingDrawerListener;
 import jp.ne.hatena.hackugyo.procon.ui.widget.RecyclerViewEmptySupport;
 import jp.ne.hatena.hackugyo.procon.util.ArrayUtils;
@@ -76,10 +83,13 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     private static final String TAG_CHOOSE_EDIT_MODE = "MainActivity.TAG_CHOOSE_EDIT_MODE";
     private static final String TAG_EDIT_CONTENT = "MainActivity.TAG_EDIT_CONTENT";
     private static final String TAG_EDIT_CITATION_RESOURCE = "MainActivity.TAG_EDIT_CITATION_RESOURCE";
+    private static final String TAG_SHOW_IMAGE = "MainActivity.TAG_SHOW_IMAGE";
 
     public static final String ITEM_ID = "MainActivity.ITEM_ID";
     public static final String CHOICE_IDS = "MainActivity.CHOICE_IDS";
-    private CompositeSubscription compositeSubscription;
+    private static final int REQUEST_CAMERA_CHOOSER = 1000;
+    private static final int REQUEST_GALLERY_CHOOSER = 1001;
+    private RecyclerClickable imageOnClickRecyclerListener;
 
     /**
      * 長押しからのアイテム編集モード
@@ -131,7 +141,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     private DrawerLayout drawerManager;
     private NavigationView drawerRight;
     private EditText themeEditText;
-    private Button themeDeleteButton;
+    private BootstrapButton themeDeleteButton;
 
     RecyclerViewEmptySupport mainRecyclerView, summaryRecyclerView;
     ChatLikeListAdapter mainListAdapter;
@@ -151,6 +161,15 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
     private NavigationView.OnNavigationItemSelectedListener onNavigationItemSelectedListener;
     private RecyclerClickable mainOnClickRecyclerListener, summaryOnClickRecyclerListener;
+
+    private CompositeSubscription compositeSubscription;
+    /**
+     * Intentの返却値にUriを含めて返さない端末があるため、アプリ側でいちおう持っておく。
+     */
+    private Uri tempUriForRequestChooser;
+    private BootstrapButton photoButton;
+    private BootstrapButton cameraButton;
+
 
 
     @Override
@@ -264,28 +283,75 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode == REQUEST_CAMERA_CHOOSER) {
+            getPhotoButton().setVisibility(View.GONE);
+            getCameraButton().setVisibility(View.GONE);
+            if(resultCode != RESULT_OK) {
+                // キャンセル時
+                tempUriForRequestChooser = null;
+                return ;
+            }
+
+            Uri resultUri = (data != null ? data.getData() : tempUriForRequestChooser);
+            // dataからUriがとれない端末があるので対秘策
+
+            tempUriForRequestChooser = null;
+            if(resultUri == null) {
+                // 取得失敗
+                return;
+            }
+
+            // ギャラリーへスキャンを促す
+            MediaScannerConnection.scanFile(
+                    this,
+                    new String[]{resultUri.getPath()},
+                    new String[]{"image/jpeg"},
+                    null
+            );
+
+            viewProvider.setImage(resultUri);
+        } else if (requestCode == REQUEST_GALLERY_CHOOSER) {
+            getPhotoButton().setVisibility(View.GONE);
+            getCameraButton().setVisibility(View.GONE);
+            if(resultCode != RESULT_OK) {
+                // キャンセル時
+                return ;
+            }
+            Uri resultUri = (data != null ? data.getData() : tempUriForRequestChooser);
+            if(resultUri == null) {
+                // 取得失敗
+                return;
+            }
+            viewProvider.setImage(resultUri);
+        }
+    }
+
     /****************************************
      * Views
      ****************************************/
 
     private void setupViews() {
-        viewProvider = new MainActivityViewProvider(this, getCitationResourceSuggestionAdapter(), setupAddAsProButton(), setupAddAsConButton());
+        viewProvider = new MainActivityViewProvider(this, getCitationResourceSuggestionAdapter(), setupAddAsProButton(), setupAddAsConButton(), setupOthersButton());
         provideRightDrawer();
         provideRightDrawerTitle();
         provideThemeDeleteButton();
         provideRightDrawerRecyclerView();
 
-        getDrawerManager().setDrawerListener(new KeyboardClosingDrawerListener());
+        getDrawerManager().addDrawerListener(new KeyboardClosingDrawerListener());
 
         mainRecyclerView = (RecyclerViewEmptySupport) findViewById(R.id.listView);
         mainListAdapter = new ChatLikeListAdapter(this, memos, getMainOnClickRecyclerListener());
+        mainListAdapter.setOnImageClickListener(getImageOnClickRecyclerListener());
         mainRecyclerView.setAdapter(mainListAdapter);
         LinearLayoutManager llm = new LinearLayoutManager(this);
         llm.setOrientation(LinearLayoutManager.VERTICAL);
         mainRecyclerView.setLayoutManager(llm);
     }
 
-    private Button setupAddAsProButton() {
+    private BootstrapButton setupAddAsProButton() {
         //Button の処理
         View.OnClickListener listener = new View.
                 OnClickListener() {
@@ -296,13 +362,13 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
             }
         };
-
-        Button viewById = (Button) findViewById(R.id.button_save_as_pro);
+        BootstrapButton viewById = (BootstrapButton) findViewById(R.id.button_save_as_pro);
+        viewById.setBootstrapBrand(CustomBootStrapBrand.PRO);
         viewById.setOnClickListener(listener);
         return viewById;
     }
 
-    private Button setupAddAsConButton() {
+    private BootstrapButton setupAddAsConButton() {
         //Button の処理
         View.OnClickListener listener = new View.
                 OnClickListener() {
@@ -312,10 +378,71 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                 saveMemoAndUpdate(v, false);
             }
         };
-        Button viewById = (Button) findViewById(R.id.button_save_as_con);
+        BootstrapButton  viewById = (BootstrapButton) findViewById(R.id.button_save_as_con);
+        viewById.setBootstrapBrand(CustomBootStrapBrand.CON);
         viewById.setOnClickListener(listener);
         return viewById;
     }
+
+    private BootstrapButton setupOthersButton() {
+        //Button の処理
+        View.OnClickListener listener = new View.
+                OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                getPhotoButton().setVisibility(getPhotoButton().getVisibility() == View.GONE ? View.VISIBLE : View.GONE);
+                getCameraButton().setVisibility(getCameraButton().getVisibility() == View.GONE ? View.VISIBLE : View.GONE);
+            }
+        };
+        BootstrapButton  viewById = (BootstrapButton) findViewById(R.id.button_save_as_other);
+        if (viewById != null) {
+            viewById.setBootstrapBrand(CustomBootStrapBrand.OTHER);
+            viewById.setOnClickListener(listener);
+        }
+        return viewById;
+    }
+
+    private BootstrapButton getCameraButton() {
+        if (cameraButton == null) {
+            //Button の処理
+            View.OnClickListener listener = new View.
+                    OnClickListener() {
+
+                @Override
+                public void onClick(View v) {
+                    showCamera();
+                }
+            };
+            cameraButton = (BootstrapButton) findViewById(R.id.button_load_from_camera);
+            if (cameraButton != null) {
+                cameraButton.setBootstrapBrand(CustomBootStrapBrand.OTHER);
+                cameraButton.setOnClickListener(listener);
+            }
+        }
+        return cameraButton;
+    }
+
+    private BootstrapButton getPhotoButton() {
+        if (photoButton == null) {
+            //Button の処理
+            View.OnClickListener listener = new View.
+                    OnClickListener() {
+
+                @Override
+                public void onClick(View v) {
+                    showGallery();
+                }
+            };
+            photoButton = (BootstrapButton) findViewById(R.id.button_load_from_gallery);
+            if (photoButton != null) {
+                photoButton.setBootstrapBrand(CustomBootStrapBrand.OTHER);
+                photoButton.setOnClickListener(listener);
+            }
+        }
+        return photoButton;
+    }
+
 
     private NavigationView provideRightDrawer() {
         if (drawerRight == null) {
@@ -354,9 +481,10 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         return themeEditText;
     }
 
-    private Button provideThemeDeleteButton() {
+    private BootstrapButton provideThemeDeleteButton() {
         if (themeDeleteButton == null) {
-            themeDeleteButton = (Button) provideRightDrawer().findViewById(R.id.button_delete_this_theme);
+            themeDeleteButton = (BootstrapButton) provideRightDrawer().findViewById(R.id.button_delete_this_theme);
+            themeDeleteButton.setBootstrapBrand(CustomBootStrapBrand.OTHER);
             themeDeleteButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -420,7 +548,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                         self.memos.addAll(memos);
                         mainListAdapter.notifyDataSetChanged();
                         if (mainListAdapter.getItemCount() > 0) {
-                            mainRecyclerView.smoothScrollToPosition(mainListAdapter.getItemCount() - 1);
+                            mainRecyclerView.smoothScrollToPosition(Math.max(0, mainListAdapter.getItemCount() - 1));
                         }
                         summaryListAdapter.reloadMemos(self.memos);
                     }
@@ -431,23 +559,30 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     private void saveMemoAndUpdate(View v, boolean asPro) {
         String content = viewProvider.contentEditText.getText().toString();
         String citationResource =  viewProvider.citationResourceEditText.getText().toString();
-        if (StringUtils.isPresent(content) || UrlUtils.isValidUrl(citationResource)) {
+        if (StringUtils.isPresent(content) || UrlUtils.isValidWebUrl(citationResource)) {
             Calendar cal = Calendar.getInstance();
             //保存処置
-            insertMemoAsync(content, cal, citationResource, viewProvider.pagesEditText.getText().toString(), asPro);
+            Memo memo = createMemo(content, cal, citationResource, viewProvider.pagesEditText.getText().toString(), asPro);
+            if (viewProvider.getImageUri() != null) {
+                memo.addCitationResource(viewProvider.getImageUri().toString());
+            }
+            insertMemoAsync(memo);
             //Keyboard の消去，EditText 内のデータ消去
             viewProvider.resetInputTexts(v);
 
-            mainRecyclerView.smoothScrollToPosition(mainListAdapter.getItemCount() - 1);
+            mainRecyclerView.smoothScrollToPosition(Math.max(0, mainListAdapter.getItemCount() - 1));
         }
     }
 
-    private void insertMemoAsync(String text, Calendar cal, String resource, String pages, boolean isPro) {
-        //memo を追加し、セーブする
+    private Memo createMemo(String text, Calendar cal, String resource, String pages, boolean isPro) {
         Memo memo = new Memo(cal, text, isPro);
         memo.addCitationResource(StringUtils.stripLast(resource));
         memo.setPages(pages);
         memo.setChatTheme(chatTheme);
+        return memo;
+    }
+
+    private void insertMemoAsync(Memo memo) {
         RxBusProvider.getInstance().post(new RequestDataSaveEvent(memo));
     }
 
@@ -466,7 +601,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                 //ListView に設置
                 mainListAdapter.notifyDataSetChanged();
                 summaryListAdapter.reloadMemos(self.memos);
-                mainRecyclerView.smoothScrollToPosition(mainListAdapter.getItemCount() - 1);
+                mainRecyclerView.smoothScrollToPosition(Math.max(0, mainListAdapter.getItemCount() - 1));
                 mainActivityHelper.loadPreviewAsync(savedMemo);
             } else {
                 mainListAdapter.notifyItemChanged(memos.indexOf(inList));
@@ -540,8 +675,6 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                         if (memo.isForUrl()) items.add(EditModeEnum.OPEN_URL);
                         if (!memo.isForUrl()) items.add(EditModeEnum.EDIT_THIS_ITEM);
                         items.add(EditModeEnum.EDIT_CITATION);
-
-
                     }
                     Bundle args = new Bundle();
                     args.putLong(ITEM_ID, memo.getId());
@@ -576,6 +709,38 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         }
         return summaryOnClickRecyclerListener;
     }
+
+
+    private RecyclerClickable getImageOnClickRecyclerListener() {
+        if (imageOnClickRecyclerListener == null) {
+            imageOnClickRecyclerListener = new RecyclerClickable() {
+                @Override
+                public void onRecyclerClicked(View v, int position) {
+                    //snackbar をクリックで消す処置
+                    if (snackbar != null) snackbar.dismiss();
+                    Memo memo = memos.get(position);
+                    if (memo.isWithPhoto()) {
+                        String imageUrlString = memo.getImageUrl();
+                        showDialogFragment(
+                                ImageDialogFragment.newInstance(self, null, imageUrlString),
+                                TAG_SHOW_IMAGE);
+                    }
+
+                }
+
+                @Override
+                public void onRecyclerButtonClicked(View v, int position) {
+                    getMainOnClickRecyclerListener().onRecyclerButtonClicked(v, position);
+                }
+
+                @Override
+                public boolean onRecyclerLongClicked(View v, int position) {
+                    return getMainOnClickRecyclerListener().onRecyclerLongClicked(v, position);
+                }
+            };
+        }
+        return imageOnClickRecyclerListener;
+    }
     /***********************************************
      * intent handling *
      **********************************************/
@@ -598,6 +763,46 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         } else {
             startActivity(mainIntent);
         }
+    }
+
+
+    private void showCamera() {
+        // カメラ起動のIntent作成 */
+        File pathFilesDir = new File(
+                StringUtils.build(
+                        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).getAbsolutePath(), File.separator,
+                        self.getPackageName(), File.separator,
+                        "Images"
+                ));
+        pathFilesDir.mkdirs();
+
+        String filename =  StringUtils.build(
+                StringUtils.padZeros(chatTheme.getId(), 8),
+                "_", StringUtils.valueOf(System.currentTimeMillis()),
+                ".jpg");
+        File capturedFile = new File(pathFilesDir, filename);
+        tempUriForRequestChooser = Uri.fromFile(capturedFile);
+        Intent intentPhoto = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        intentPhoto.putExtra(MediaStore.EXTRA_OUTPUT, tempUriForRequestChooser);
+        Intent chooserIntent = Intent.createChooser(intentPhoto, "画像の選択");
+        startActivityForResult(chooserIntent, REQUEST_CAMERA_CHOOSER);
+    }
+
+    private void showGallery() {
+        // ギャラリー用のIntent作成
+        Intent intentGallery;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
+            intentGallery = new Intent(Intent.ACTION_GET_CONTENT);
+            intentGallery.setType("image/*");
+        } else {
+            intentGallery = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intentGallery.addCategory(Intent.CATEGORY_OPENABLE);
+            intentGallery.setType("image/jpeg");
+        }
+
+        Intent chooserIntent = Intent.createChooser(intentGallery, "画像の選択");
+
+        startActivityForResult(chooserIntent, REQUEST_GALLERY_CHOOSER);
     }
 
     /***********************************************
@@ -727,6 +932,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
             setContentAtAsync(args);
         } else if (StringUtils.isSame(tag, TAG_EDIT_CITATION_RESOURCE)) {
             setCitationResourceAt(args);
+        } else if (StringUtils.isSame(tag, TAG_SHOW_IMAGE)) {
         } else {
             LogUtils.w("Something wrong. " + tag);
         }
@@ -743,6 +949,8 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         } else if (StringUtils.isSame(tag, TAG_EDIT_CONTENT)) {
             // nothing to do.
         } else if (StringUtils.isSame(tag, TAG_EDIT_CITATION_RESOURCE)) {
+            // nothing to do.
+        } else if (StringUtils.isSame(tag, TAG_SHOW_IMAGE)) {
             // nothing to do.
         } else {
             LogUtils.w("Something wrong. " + tag);

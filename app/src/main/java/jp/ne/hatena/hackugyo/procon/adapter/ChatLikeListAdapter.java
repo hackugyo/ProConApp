@@ -1,7 +1,6 @@
 package jp.ne.hatena.hackugyo.procon.adapter;
 
 import android.app.Activity;
-import android.support.v7.widget.AppCompatTextView;
 import android.support.v7.widget.RecyclerView;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -12,21 +11,15 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.leocardz.link.preview.library.SourceContent;
 import com.squareup.picasso.Picasso;
 
 import java.util.List;
 
 import jp.ne.hatena.hackugyo.procon.R;
-import jp.ne.hatena.hackugyo.procon.model.CitationResource;
 import jp.ne.hatena.hackugyo.procon.model.Memo;
 import jp.ne.hatena.hackugyo.procon.ui.RecyclerClickable;
-import jp.ne.hatena.hackugyo.procon.util.ArrayUtils;
 import jp.ne.hatena.hackugyo.procon.util.LogUtils;
 import jp.ne.hatena.hackugyo.procon.util.StringUtils;
-import jp.ne.hatena.hackugyo.procon.util.UrlUtils;
-import rx.Observable;
-import rx.functions.Func1;
 
 /**
  * Created by kwatanabe on 15/08/27.
@@ -37,12 +30,17 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
     private static final int VIEW_TYPE_URL_PREVIEW = 1;
     private final List<Memo> mMemos;
     private final RecyclerClickable mOnClickListener;
+    private RecyclerClickable mOnImageClickListener;
     private Activity context;
 
     public ChatLikeListAdapter(Activity context, List<Memo> memos, RecyclerClickable onClickListener) {
         this.context = context;
         this.mMemos = memos;
         mOnClickListener = onClickListener;
+    }
+
+    public void setOnImageClickListener(RecyclerClickable listener) {
+        mOnImageClickListener = listener;
     }
 
 
@@ -99,6 +97,25 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
                 return false;
             }
         });
+        if (holder.getItemViewType() == VIEW_TYPE_URL_PREVIEW) {
+            ((UrlPreviewViewHolder)holder).imageView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (mOnImageClickListener != null) {
+                        mOnImageClickListener.onRecyclerClicked(v, position);
+                    }
+                }
+            });
+            ((UrlPreviewViewHolder)holder).imageView.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View view) {
+                    if (mOnImageClickListener != null) {
+                        return mOnImageClickListener.onRecyclerLongClicked(view, position);
+                    }
+                    return false;
+                }
+            });
+        }
         holder.setRemoved(memo.isRemoved());
 
     }
@@ -107,6 +124,9 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
     public int getItemViewType(int position) {
         Memo memo = mMemos.get(position);
         if (memo.isForUrl()) return VIEW_TYPE_URL_PREVIEW;
+        if (memo.isWithPhoto()) {
+            return VIEW_TYPE_URL_PREVIEW;
+        }
         return VIEW_TYPE_NORMAL_BUBBLE;
     }
 
@@ -251,11 +271,13 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
                 txtMessage.setText(memoText);
             }
 
-            String imageUrl = getImageUrlFrom(memo);
+            String imageUrl = memo.getImageUrl();
+            LogUtils.d("imageUrl: " + imageUrl);
             if (imageUrl != null) {
                 Picasso
                         .with(context)
                         .load(imageUrl)
+                        .error(R.drawable.ic_action_reload)
                         .fit()
                         .centerInside()
                         .into(imageView);
@@ -265,30 +287,5 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
             }
         }
 
-        private String getImageUrlFrom(Memo memo) {
-
-            SourceContent sourceContent = memo.getSourceContent();
-            String imageUrl = null;
-            if (sourceContent == null) {
-                imageUrl = Observable.from(memo.getCitationResources()).skip(1).filter(new Func1<CitationResource, Boolean>() {
-                    @Override
-                    public Boolean call(CitationResource citationResource) {
-                        return UrlUtils.isValidUrl(citationResource.getName());
-                    }
-                })
-                        .map(new Func1<CitationResource, String>() {
-                            @Override
-                            public String call(CitationResource citationResource) {
-                                return citationResource.getName();
-                            }
-                        })
-                        .firstOrDefault(null)
-                        .toBlocking()
-                        .single();
-            } else if (ArrayUtils.any(sourceContent.getImages()) && UrlUtils.isTwitterUrl(sourceContent.getFinalUrl())) {
-                imageUrl = memo.getSourceContent().getImages().get(0);
-            }
-            return imageUrl;
-        }
     }
 }

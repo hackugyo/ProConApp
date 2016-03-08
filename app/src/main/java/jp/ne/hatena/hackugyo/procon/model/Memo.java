@@ -13,6 +13,9 @@ import java.util.List;
 
 import jp.ne.hatena.hackugyo.procon.util.ArrayUtils;
 import jp.ne.hatena.hackugyo.procon.util.StringUtils;
+import jp.ne.hatena.hackugyo.procon.util.UrlUtils;
+import rx.Observable;
+import rx.functions.Func1;
 
 @DatabaseTable(tableName = "Memo")
 public class Memo {
@@ -109,6 +112,17 @@ public class Memo {
         return Patterns.WEB_URL.matcher(getCitationResource()).matches();
     }
 
+    public boolean isWithPhoto() {
+        return !isForUrl() && Observable.from(getCitationResources())
+                .filter(new Func1<CitationResource, Boolean>() {
+                    @Override
+                    public Boolean call(CitationResource citationResource) {
+                        return UrlUtils.isValidUri(citationResource.getName());
+                    }
+                })
+                .firstOrDefault(null).toBlocking().single() != null;
+    }
+
     public void setLoaded(boolean isLoaded) {
         this.isLoaded = isLoaded;
     }
@@ -145,6 +159,36 @@ public class Memo {
         if (StringUtils.isEmpty(resource)) return;
         if (this.citationResources == null) this.citationResources = new ArrayList<>();
         this.citationResources.add(new CitationResource(resource));
+    }
+
+    public String getImageUrl() {
+
+        SourceContent sourceContent = getSourceContent();
+        String imageUrl = null;
+        if (sourceContent == null) {
+            Observable<CitationResource> from = Observable.from(getCitationResources());
+            if (isForUrl()) {
+                from = from.skip(1);
+            }
+            imageUrl = from.filter(new Func1<CitationResource, Boolean>() {
+                @Override
+                public Boolean call(CitationResource citationResource) {
+                    return UrlUtils.isValidUri(citationResource.getName());
+                }
+            })
+                    .map(new Func1<CitationResource, String>() {
+                        @Override
+                        public String call(CitationResource citationResource) {
+                            return citationResource.getName();
+                        }
+                    })
+                    .firstOrDefault(null)
+                    .toBlocking()
+                    .single();
+        } else if (ArrayUtils.any(sourceContent.getImages()) && UrlUtils.isTwitterUrl(sourceContent.getFinalUrl())) {
+            imageUrl = getSourceContent().getImages().get(0);
+        }
+        return imageUrl;
     }
 
     public void setRemoved(boolean isRemoved) {

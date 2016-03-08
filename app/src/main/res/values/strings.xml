@@ -7,8 +7,8 @@
     <string name="no">いいえ</string>
 
 
-    <string name="save_as_pro">↑ 賛成意見</string>
-    <string name="save_as_con">反対意見 ↑</string>
+    <string name="save_as_pro">{fa_thumbs_o_up} 賛成意見</string>
+    <string name="save_as_con">反対意見 {fa_thumbs_o_down}</string>
     <string name="hint">note here</string>
     <string name="hint_citation_resource">出典情報（URLも可）</string>
     <string name="toast_theme_name_edited">タイトルを変更しました</string>
@@ -19,4 +19,6 @@
     <string name="message_pleasewait">しばらくお待ちください</string>
 
     <string name="suggestion_hint_from">過去に入力した出典情報</string>
+
+    <string name="error_image_not_found">読み込めませんでした。画像が削除されてしまったおそれがあります。</string>
 </resources>

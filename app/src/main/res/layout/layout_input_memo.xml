@@ -11,41 +11,81 @@
         android:id="@+id/buttons_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/editTexts_container"
+        android:layout_above="@+id/citation_editText_container"
+        android:paddingLeft="@dimen/micro_padding"
+        android:paddingRight="@dimen/micro_padding"
         android:orientation="horizontal"
         >
-        <Button
+        <com.beardedhen.androidbootstrap.BootstrapButton
             android:id="@+id/button_save_as_pro"
-            android:theme="@style/ProsSaveButton"
             android:layout_width="0dp"
             android:layout_weight="1"
-            android:layout_height="48dp"
+            android:layout_height="wrap_content"
             android:gravity="left|center_vertical"
-            android:text="@string/save_as_pro" />
-        <Button
+            android:layout_marginRight="@dimen/micro_padding"
+            app:bootstrapText="@string/save_as_pro"
+            app:bootstrapSize="md"
+            app:buttonMode="regular"
+            app:showOutline="false"
+            app:roundedCorners="false"
+            />
+        <com.beardedhen.androidbootstrap.BootstrapButton
             android:id="@+id/button_save_as_con"
-            android:theme="@style/ConsSaveButton"
             android:layout_width="0dp"
             android:layout_weight="1"
-            android:layout_height="48dp"
+            android:layout_height="wrap_content"
             android:gravity="right|center_vertical"
-            android:text="@string/save_as_con" />
+            android:layout_marginRight="@dimen/micro_padding"
+            app:bootstrapText="@string/save_as_con"
+            app:bootstrapSize="md"
+            app:buttonMode="regular"
+            app:showOutline="false"
+            app:roundedCorners="false"
+            />
 
-        <ImageButton
-            android:id="@+id/button_save_as_other"
-            android:theme="@style/OtherButton"
+        <com.beardedhen.androidbootstrap.BootstrapButton
+            android:id="@+id/button_load_from_camera"
             android:layout_width="wrap_content"
-            android:layout_height="48dp"
-            android:src="@drawable/ic_action_overflow"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:layout_marginRight="@dimen/micro_padding"
+            app:bootstrapText=" {fa_camera}"
+            app:bootstrapSize="md"
+            app:buttonMode="regular"
+            app:showOutline="false"
+            app:roundedCorners="true"
+            />
+        <com.beardedhen.androidbootstrap.BootstrapButton
+            android:id="@+id/button_load_from_gallery"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:layout_marginRight="@dimen/micro_padding"
+            app:bootstrapText=" {fa_photo}"
+            app:bootstrapSize="md"
+            app:buttonMode="regular"
+            app:showOutline="false"
+            app:roundedCorners="true"
+            />
+
+        <com.beardedhen.androidbootstrap.BootstrapButton
+            android:id="@+id/button_save_as_other"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:bootstrapText=" {fa_ellipsis_v}"
+            app:bootstrapSize="md"
+            app:buttonMode="regular"
+            app:showOutline="false"
+            app:roundedCorners="false"
             />
     </LinearLayout>
 
     <!-- 出典情報 -->
     <LinearLayout
-        android:id="@+id/editTexts_container"
+        android:id="@+id/citation_editText_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/editText"
+        android:layout_above="@+id/editText_container"
         android:orientation="horizontal"
         android:gravity="bottom"
         android:layout_marginLeft="4dp"
@@ -89,16 +129,59 @@
             />
     </LinearLayout>
 
-    <EditText
-        android:id="@+id/editText"
+    <LinearLayout
+        android:id="@+id/editText_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
         android:layout_centerHorizontal="true"
         android:layout_alignParentBottom="true"
-        android:inputType="textMultiLine"
-        android:descendantFocusability="beforeDescendants"
-        android:focusable="true"
-        android:focusableInTouchMode="true"
-        android:hint="@string/hint" />
+        >
+        <EditText
+            android:id="@+id/editText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:inputType="textMultiLine"
+            android:descendantFocusability="beforeDescendants"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:hint="@string/hint" />I
 
+        <FrameLayout
+            android:id="@+id/imageViewContainer"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentRight="true"
+            android:layout_marginRight="@dimen/micro_padding"
+            android:layout_marginBottom="@dimen/micro_padding"
+            android:visibility="gone"
+            tools:visibility="visible"
+            >
+
+            <ImageView
+                android:id="@+id/imageView"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:scaleType="fitCenter"
+                />
+            <fr.castorflex.android.circularprogressbar.CircularProgressBar
+                android:id="@+id/imageViewProgress"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:padding="@dimen/micro_padding"
+                android:indeterminate="true"
+                android:visibility="gone"
+                tools:visibility="visible"
+                app:cpb_color="@color/app_primary_accent"
+                app:cpb_rotation_speed="1.0"
+                app:cpb_sweep_speed="1.0"
+                app:cpb_stroke_width="4dp"
+                app:cpb_min_sweep_angle="10"
+                app:cpb_max_sweep_angle="300"
+                />
+        </FrameLayout>
+    </LinearLayout>
 </merge>

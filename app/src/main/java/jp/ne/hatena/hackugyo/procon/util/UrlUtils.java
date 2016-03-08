@@ -1,9 +1,11 @@
 package jp.ne.hatena.hackugyo.procon.util;
 
+import android.net.Uri;
 import android.util.Patterns;
 import android.webkit.URLUtil;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.regex.Pattern;
@@ -17,6 +19,17 @@ public class UrlUtils {
 
     }
 
+    public static boolean isValidUri(String potentialUri) {
+        if (potentialUri == null) return false;
+        try {
+            URI.create(potentialUri).getPath();
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+        Uri parse = Uri.parse(potentialUri);
+        return parse.isAbsolute() && StringUtils.isSame(potentialUri, parse.toString());
+    }
+
     /**
      * URLが適切かどうかを返します．{@link URLUtil#isValidUrl(String)}にはバグがあるので使わないでください．
      *
@@ -24,7 +37,7 @@ public class UrlUtils {
      * @param potentialUrl
      * @return valid or not valid
      */
-    public static boolean isValidUrl(String potentialUrl) {
+    public static boolean isValidWebUrl(String potentialUrl) {
         if (potentialUrl == null) return false;
         return Patterns.WEB_URL.matcher(potentialUrl).matches();
     }

@@ -3,6 +3,7 @@ package jp.ne.hatena.hackugyo.procon;
 import android.app.Application;
 import android.content.Context;
 
+import com.beardedhen.androidbootstrap.TypefaceProvider;
 import com.github.kubode.rxeventbus.RxEventBus;
 import com.squareup.okhttp.Cache;
 import com.squareup.okhttp.Interceptor;
@@ -56,6 +57,7 @@ public class AppApplication extends Application {
         super.onCreate();
         sContext = getApplicationContext();
         JodaTimeAndroid.init(this);
+        TypefaceProvider.registerDefaultIconSets();
         mOkHttpClient = buildOkHttpClient();
 
         Retrofit retrofit = new Retrofit.Builder()

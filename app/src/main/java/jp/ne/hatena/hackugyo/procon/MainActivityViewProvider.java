@@ -1,14 +1,21 @@
 package jp.ne.hatena.hackugyo.procon;
 
 import android.app.Activity;
+import android.net.Uri;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
-import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.ProgressBar;
 
+import com.beardedhen.androidbootstrap.BootstrapButton;
 import com.jakewharton.rxbinding.widget.RxTextView;
 import com.jakewharton.rxbinding.widget.TextViewAfterTextChangeEvent;
+import com.squareup.picasso.Callback;
+import com.squareup.picasso.DocumentExifTransformation;
+import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,15 +36,20 @@ public class MainActivityViewProvider {
     private final Activity activity;
     private final ArrayAdapter citationResourceSuggestionAdapter;
     private final MainActivityViewProvider viewProvider = this;
-
+    private final Picasso picasso;
 
     EditText contentEditText;
     EditText pagesEditText;
     AutoCompleteTextView citationResourceEditText;
-    Button addAsProButton, addAsConButton;
+    BootstrapButton addAsProButton, addAsConButton, otherButton;
+    private ProgressBar pbLoadingBar;
+    private ViewGroup imageContainer;
+    ImageView imageView;
+    private Uri imageUri;
 
-    public MainActivityViewProvider(Activity activity, ArrayAdapter citationResourceSuggestionAdapter, Button proButton, Button conButton) {
+    public MainActivityViewProvider(Activity activity, ArrayAdapter citationResourceSuggestionAdapter, BootstrapButton proButton, BootstrapButton conButton, BootstrapButton otherButton) {
         this.activity = activity;
+        picasso = Picasso.with(activity);
         this.citationResourceSuggestionAdapter = citationResourceSuggestionAdapter;
 
         contentEditText = (EditText) findViewById(R.id.editText);
@@ -52,6 +64,7 @@ public class MainActivityViewProvider {
         pagesEditText = (EditText) findViewById(R.id.editText_pages);
         addAsProButton = proButton;
         addAsConButton = conButton;
+        this.otherButton = otherButton;
 
         Observable.combineLatest(
                 RxTextView
@@ -69,7 +82,7 @@ public class MainActivityViewProvider {
                                 new Func1<TextViewAfterTextChangeEvent, Boolean>() {
                                     @Override
                                     public Boolean call(TextViewAfterTextChangeEvent textViewAfterTextChangeEvent) {
-                                        return UrlUtils.isValidUrl(textViewAfterTextChangeEvent.editable().toString());
+                                        return UrlUtils.isValidWebUrl(textViewAfterTextChangeEvent.editable().toString());
                                     }
                                 }),
                 new Func2<Boolean, Boolean, Boolean>() {
@@ -96,13 +109,19 @@ public class MainActivityViewProvider {
 
         viewProvider.contentEditText.getEditableText().clear();
         viewProvider.citationResourceEditText.getEditableText().clear();
+        viewProvider.citationResourceEditText.setEnabled(true);
         viewProvider.pagesEditText.getEditableText().clear();
+
+        if (imageContainer == null) imageContainer = (ViewGroup) findViewById(R.id.imageViewContainer);
+        imageContainer.setVisibility(View.GONE);
+
     }
 
     public void resumeInputTexts(String memo, String citationResource, String pages) {
 
         viewProvider.contentEditText.setText(memo);
         viewProvider.citationResourceEditText.setText(citationResource);
+        viewProvider.citationResourceEditText.setEnabled(true);
         viewProvider.pagesEditText.setText(pages);
     }
 
@@ -128,4 +147,42 @@ public class MainActivityViewProvider {
                 .subscribe();
     }
 
+    public void setImage(Uri resultUri) {
+        if (pbLoadingBar == null) pbLoadingBar = (ProgressBar) findViewById(R.id.imageViewProgress);
+        if (imageContainer == null) imageContainer = (ViewGroup) findViewById(R.id.imageViewContainer);
+        imageContainer.setVisibility(View.VISIBLE);
+        pbLoadingBar.setVisibility(View.VISIBLE);
+        // 画像を設定
+
+        picasso.cancelRequest(getImageView());
+        imageUri = resultUri;
+        picasso
+                .load(resultUri)
+                .noPlaceholder()
+                .error(R.drawable.ic_action_reload)
+                .transform(new DocumentExifTransformation(activity, resultUri))
+                .into(getImageView(), new Callback() {
+                    @Override
+                    public void onSuccess() {
+                        pbLoadingBar.setVisibility(View.GONE);
+                    }
+
+                    @Override
+                    public void onError() {
+                        pbLoadingBar.setVisibility(View.GONE);
+                        imageUri = null;
+                    }
+                });
+    }
+
+    private ImageView getImageView() {
+        if (imageView == null) {
+            imageView = (ImageView)findViewById(R.id.imageView);
+        }
+        return imageView;
+    }
+
+    public Uri getImageUri() {
+        return imageUri;
+    }
 }

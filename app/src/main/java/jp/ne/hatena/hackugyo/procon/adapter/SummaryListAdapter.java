@@ -79,7 +79,7 @@ public class SummaryListAdapter  extends RecyclerView.Adapter<SummaryListAdapter
                     Memo memo = this.cons.get(conPosition);
                     holder.txtMessage.setText(memo.getCitationResource());
                 } else {
-                    LogUtils.i("!? " + position + " / " + getItemCount());
+                    LogUtils.w("!? " + position + " / " + getItemCount());
                 }
             }
         }

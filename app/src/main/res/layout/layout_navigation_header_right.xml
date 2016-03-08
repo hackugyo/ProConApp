@@ -31,13 +31,15 @@
         android:layout_marginBottom="2dp"
         android:background="@color/gray_200_highlight"
         />
-    <Button
-        android:layout_marginTop="4dp"
+
+    <com.beardedhen.androidbootstrap.BootstrapButton
         android:id="@+id/button_delete_this_theme"
-        android:theme="@style/OtherButton"
         android:layout_width="wrap_content"
-        android:layout_height="48dp"
-        android:paddingLeft="8dp"
-        android:text="この議題を削除"
+        android:layout_height="wrap_content"
+        app:bootstrapText="{fa-trash} この議題を削除"
+        app:bootstrapSize="lg"
+        app:buttonMode="regular"
+        app:showOutline="false"
+        app:roundedCorners="false"
         />
 </LinearLayout>

@@ -309,6 +309,10 @@ public final class StringUtils {
         return String.format("%1$0" + length + "d", number);
     }
 
+    public static String padZeros(long number, int length) {
+        return String.format("%1$0" + length + "d", number);
+    }
+
     /**
      * 与えられた引数が候補リストに含まれるかどうかを返します．
      *

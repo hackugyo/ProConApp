@@ -2,8 +2,8 @@ package jp.ne.hatena.hackugyo.procon;
 
 import android.content.Context;
 import android.os.Handler;
+import android.support.v4.util.Pair;
 import android.support.v7.widget.RecyclerView;
-import android.util.Pair;
 
 import com.leocardz.link.preview.library.SourceContent;
 import com.leocardz.link.preview.library.TextCrawler;
@@ -245,7 +245,7 @@ public class MainActivityHelper {
     private static Func1<String, Boolean> sIgnoreUrlFilter = new Func1<String, Boolean>() {
         @Override
         public Boolean call(String s) {
-            return !StringUtils.isEmpty(s) && !UrlUtils.isValidUrl(StringUtils.stripLast(s));
+            return !StringUtils.isEmpty(s) && !UrlUtils.isValidWebUrl(StringUtils.stripLast(s));
         }
     };
 
@@ -280,5 +280,4 @@ public class MainActivityHelper {
                 .distinct()
                 .toSortedList().toBlocking().single();
     }
-
 }
