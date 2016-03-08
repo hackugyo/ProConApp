@@ -3,6 +3,7 @@ package jp.ne.hatena.hackugyo.procon.util;
 import android.content.Context;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -43,5 +44,12 @@ public class FileUtils {
         }
 
         return text;
+    }
+
+    public static boolean deleteFile(String fileUrl) {
+        if (StringUtils.isEmpty(fileUrl)) return false;
+        LogUtils.d("Deleting: " + fileUrl);
+        File file = new File(fileUrl.replace("file://", ""));
+        return file.delete();
     }
 }

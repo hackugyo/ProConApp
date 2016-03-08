@@ -791,6 +791,20 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         }
     }
 
+    /**
+     * ファイルマネージャを選択させて表示します．<br>
+     * @see <a href="http://stackoverflow.com/a/26651827">参考リンク</a>
+     * */
+    public void launchExternalFileManager(Uri dirUri) {
+        Intent mainIntent = new Intent(Intent.ACTION_VIEW);
+        mainIntent.setDataAndType(dirUri, "resource/folder");
+        List<ResolveInfo> resolveInfos = getPackageManager().queryIntentActivities(mainIntent, PackageManager.MATCH_ALL);
+        if (mainIntent.resolveActivityInfo(getPackageManager(), 0) == null) {// resolveInfos.size() == 0) {
+            Toast.makeText(this, "対応するファイル閲覧アプリがインストールされていません。", Toast.LENGTH_LONG).show();
+        } else {
+            startActivity(mainIntent);
+        }
+    }
 
     private void showCamera() {
         // カメラ起動のIntent作成 */
@@ -1184,7 +1198,6 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                         }
                     }
                 });
-
         snackbar.show();
     }
 

@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import jp.ne.hatena.hackugyo.procon.util.ArrayUtils;
+import jp.ne.hatena.hackugyo.procon.util.FileUtils;
 import jp.ne.hatena.hackugyo.procon.util.LogUtils;
 import rx.Observable;
 import rx.functions.Func1;
@@ -89,7 +90,9 @@ public class MemoRepository {
         try {
             int i = memoDao.delete(memo);
             if (i == 1) {
+                String imageUrlString = memo.getImageUrl();
                 deleteMemoCitationResource(memo);
+                FileUtils.deleteFile(imageUrlString);
                 return i;
             }
         } catch (SQLException e) {
@@ -99,8 +102,6 @@ public class MemoRepository {
         }
         return 0;
     }
-
-
 
     public List<Memo> findAll() {
         QueryBuilder<Memo, Integer> qb = memoDao.queryBuilder();
