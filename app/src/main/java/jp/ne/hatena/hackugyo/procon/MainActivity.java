@@ -24,6 +24,7 @@ import android.view.SubMenu;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -90,7 +91,6 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     public static final String CHOICE_IDS = "MainActivity.CHOICE_IDS";
     private static final int REQUEST_CAMERA_CHOOSER = 1000;
     private static final int REQUEST_GALLERY_CHOOSER = 1001;
-    private RecyclerClickable imageOnClickRecyclerListener;
 
     /**
      * 長押しからのアイテム編集モード
@@ -143,6 +143,8 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     private NavigationView drawerRight;
     private EditText themeEditText;
     private BootstrapButton themeDeleteButton;
+    private RecyclerClickable imageOnClickRecyclerListener;
+    private ImageView imageThumbnailView;
 
     RecyclerViewEmptySupport mainRecyclerView, summaryRecyclerView;
     ChatLikeListAdapter mainListAdapter;
@@ -336,6 +338,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
     private void setupViews() {
         viewProvider = new MainActivityViewProvider(this, getCitationResourceSuggestionAdapter(), setupAddAsProButton(), setupAddAsConButton(), setupOthersButton());
+        viewProvider.setImageView(provideImageThumbnailView());
         provideRightDrawer();
         provideRightDrawerTitle();
         provideThemeDeleteButton();
@@ -442,6 +445,23 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
             }
         }
         return photoButton;
+    }
+
+    private ImageView provideImageThumbnailView() {
+        if (imageThumbnailView == null) {
+            imageThumbnailView = (ImageView)findViewById(R.id.imageView);
+            imageThumbnailView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (viewProvider.getImageUri() == null) {
+                        showGallery();
+                    } else {
+                        showImageEnlarge(viewProvider.getImageUri().toString());
+                    }
+                }
+            });
+        }
+        return imageThumbnailView;
     }
 
 
@@ -722,10 +742,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                     if (snackbar != null) snackbar.dismiss();
                     Memo memo = memos.get(position);
                     if (memo.isWithPhoto()) {
-                        String imageUrlString = memo.getImageUrl();
-                        showDialogFragment(
-                                ImageDialogFragment.newInstance(self, null, imageUrlString),
-                                TAG_SHOW_IMAGE);
+                        showImageEnlarge(memo.getImageUrl());
                     }
 
                 }
@@ -743,6 +760,13 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         }
         return imageOnClickRecyclerListener;
     }
+
+    void showImageEnlarge(String imageUrlString) {
+        showDialogFragment(
+                ImageDialogFragment.newInstance(self, null, imageUrlString),
+                TAG_SHOW_IMAGE);
+    }
+
     /***********************************************
      * intent handling *
      **********************************************/

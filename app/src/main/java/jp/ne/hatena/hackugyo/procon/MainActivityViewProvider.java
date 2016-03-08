@@ -175,6 +175,10 @@ public class MainActivityViewProvider {
                 });
     }
 
+    public void setImageView(ImageView view) {
+        imageView = view;
+    }
+
     private ImageView getImageView() {
         if (imageView == null) {
             imageView = (ImageView)findViewById(R.id.imageView);
