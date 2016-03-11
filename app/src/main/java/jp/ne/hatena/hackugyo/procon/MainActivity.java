@@ -93,6 +93,8 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     private static final int REQUEST_GALLERY_CHOOSER = 1001;
 
     private static final String SHARED_PREFERENCE_LAST_THEME_ID = "MainActivity.SHARED_PREFERENCE_LAST_THEME_ID";
+    private static final String SHARED_PREFERENCE_SHOW_REORDERING_HINT = "MainActivity.SHARED_PREFERENCE_SHOW_REORDERING_HINT";
+    private BootstrapButton reorderMemosButton;
 
     /**
      * 長押しからのアイテム編集モード
@@ -515,6 +517,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
     private void setupRightDrawerButtons() {
         provideThemeDeleteButton();
+        provideReorderMemosButton();
         provideThemeExportButton();
     }
 
@@ -533,6 +536,22 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         }
         return themeDeleteButton;
     }
+
+    private BootstrapButton provideReorderMemosButton() {
+        if (reorderMemosButton == null) {
+            reorderMemosButton = (BootstrapButton) provideRightDrawer().findViewById(R.id.button_reorder_memos);
+            reorderMemosButton.setBootstrapBrand(CustomBootStrapBrand.OTHER);
+            reorderMemosButton.setGravity(Gravity.LEFT|Gravity.CENTER_VERTICAL);
+            reorderMemosButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    // TODO 20160311 並べかえモードにする
+                }
+            });
+        }
+        return reorderMemosButton;
+    }
+
 
     private BootstrapButton provideThemeExportButton() {
         if (themeExportButton == null) {
@@ -742,6 +761,12 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                     }
                     //snackbar をクリックで消す処置
                     if (snackbar != null) snackbar.dismiss();
+
+                    if (AppApplication.getSharedPreferences().getBoolean(SHARED_PREFERENCE_SHOW_REORDERING_HINT, true)) {
+                        showSingleToast("ヒント：並べ替えは右上メニューから行えます。", Toast.LENGTH_LONG);
+                        AppApplication.getSharedPreferences().edit().putBoolean(SHARED_PREFERENCE_SHOW_REORDERING_HINT, false).apply();
+                    }
+
                     Memo memo = memos.get(position);
                     ArrayList<EditModeEnum> items = new ArrayList<>();
                     {

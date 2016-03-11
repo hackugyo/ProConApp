@@ -57,6 +57,19 @@
         app:roundedCorners="false"
         />
     <com.beardedhen.androidbootstrap.BootstrapButton
+        android:id="@+id/button_reorder_memos"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/micro_padding"
+        android:layout_marginRight="@dimen/micro_padding"
+        android:layout_marginBottom="@dimen/micro_padding"
+        app:bootstrapText="{fa-reorder} 並べ替え"
+        app:bootstrapSize="lg"
+        app:buttonMode="regular"
+        app:showOutline="false"
+        app:roundedCorners="false"
+        />
+    <com.beardedhen.androidbootstrap.BootstrapButton
         android:id="@+id/button_delete_this_theme"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
