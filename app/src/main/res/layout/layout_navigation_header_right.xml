@@ -21,11 +21,9 @@
         android:paddingLeft="8dp"
         tools:text="議題"
         />
-
     <View
         android:layout_width="match_parent"
         android:layout_height="2dp"
-        android:layout_above="@+id/buttons_container"
         android:layout_marginLeft="4dp"
         android:layout_marginRight="4dp"
         android:layout_marginBottom="2dp"
@@ -33,9 +31,25 @@
         />
 
     <com.beardedhen.androidbootstrap.BootstrapButton
+        android:id="@+id/button_export_whole_memo_to_evernote"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/micro_padding"
+        android:layout_marginLeft="@dimen/micro_padding"
+        android:layout_marginRight="@dimen/micro_padding"
+        app:bootstrapText="{fa-share} Evernoteエクスポート"
+        app:bootstrapSize="lg"
+        app:buttonMode="regular"
+        app:showOutline="false"
+        app:roundedCorners="false"
+        />
+    <com.beardedhen.androidbootstrap.BootstrapButton
         android:id="@+id/button_export_whole_memo"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/micro_padding"
+        android:layout_marginLeft="@dimen/micro_padding"
+        android:layout_marginRight="@dimen/micro_padding"
         app:bootstrapText="{fa-share-square-o} Markdownエクスポート"
         app:bootstrapSize="lg"
         app:buttonMode="regular"
@@ -46,6 +60,9 @@
         android:id="@+id/button_delete_this_theme"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/micro_padding"
+        android:layout_marginRight="@dimen/micro_padding"
+        android:layout_marginBottom="@dimen/micro_padding"
         app:bootstrapText="{fa-trash} この議題を削除"
         app:bootstrapSize="lg"
         app:buttonMode="regular"

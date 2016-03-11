@@ -362,6 +362,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         mainRecyclerView.setAdapter(mainListAdapter);
         LinearLayoutManager llm = new LinearLayoutManager(this);
         llm.setOrientation(LinearLayoutManager.VERTICAL);
+        llm.setSmoothScrollbarEnabled(true);
         mainRecyclerView.setLayoutManager(llm);
     }
 
@@ -909,6 +910,12 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         }
     }
 
+    private void shareToTwitter(String text) {
+        String url = "https://twitter.com/share?text=" + StringUtils.nullToEmpty(text);
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+        startActivity(intent);
+    }
+
     /***********************************************
      * データの更新 *
      ***********************************************/
@@ -987,9 +994,14 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                             case R.id.menu_home:
                                 // TODO 20160216 この画面へ
                                 return true;
+                            case R.id.menu_settings:
+                                return true;
+                            case R.id.menu_help: // なおここでfalseを返すと選択されなかったことになるもよう
+                                shareToTwitter("@hackugyo #プロコン ");
+                                return false;
                             default:
-                                // TODO 20160216 なんとかする
-                                return true; // なおここでfalseを返すと選択されなかったことになるもよう
+                                LogUtils.w("missing menu called. at " + item.getItemId());
+                                return false;
                         }
                     } else if (item.getItemId() == R.id.menu_add_new_theme) {
                         InputDialogFragment f = InputDialogFragment.newInstance(MainActivity.this, null, "議題設定", null);

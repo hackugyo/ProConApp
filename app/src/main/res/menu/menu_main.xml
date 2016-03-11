@@ -4,8 +4,8 @@
     >
 
     <item android:id="@+id/menu_globe"
-        android:icon="@drawable/ic_action_map"
-        android:title="@string/app_map"
+        android:icon="@drawable/ic_action_list"
+        android:title="@string/menu_title_edit_this_theme"
         app:showAsAction = "always"
         />
 

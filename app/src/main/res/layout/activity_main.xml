@@ -23,7 +23,6 @@
         android:layout_gravity="start"
         android:background="@android:color/white"
         android:fitsSystemWindows="true"
-        app:headerLayout="@layout/layout_navigation_header_left"
         app:menu="@menu/menu_navigationdrawer_main"
         app:itemTextColor="@color/drawer_text_state_list_selector"
         />
