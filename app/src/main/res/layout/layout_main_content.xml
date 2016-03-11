@@ -21,7 +21,7 @@
             android:clipToPadding="false"
             android:divider="#00000000"
             android:transcriptMode="alwaysScroll"
-
+            app:layout_behavior="com.evs.demo.layout.FixedScrollingViewBehavior"
             />
 
         <me.henrytao.smoothappbarlayout.SmoothAppBarLayout
