@@ -24,12 +24,22 @@ public class Memo {
     @DatabaseField(generatedId = true, allowGeneratedIdInsert = true)
     Long id;
 
+    @DatabaseField(canBeNull = false)
+    Long position;
+
+    /**
+     * 同メモ内のどのメモへの応答かを保持する
+     */
+    @DatabaseField
+    Long replyTo;
+
     @DatabaseField(useGetSet = true)
     String memo;
 
     Calendar date;
     @DatabaseField(columnName = TIMESTAMP_FIELD)
     Long dateInMillis;
+
     @DatabaseField
     boolean isPro;
 
@@ -42,7 +52,6 @@ public class Memo {
     private boolean isLoaded = false;
     private SourceContent mSourceContent;
     private List<CitationResource> citationResources;
-    private boolean mRemoved;
     private boolean isRemoved = false;
 
     public Memo() { // no-arg constructor
