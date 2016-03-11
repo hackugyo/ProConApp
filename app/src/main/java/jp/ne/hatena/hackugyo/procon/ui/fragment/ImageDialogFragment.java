@@ -96,7 +96,7 @@ public class ImageDialogFragment extends AbsCustomDialogFragment {
         ImageView imageView = (ImageView) getDialog().findViewById(R.id.fragment_image);
         if (picasso == null) return false;
         picasso.cancelRequest(imageView);
-        picasso.load(uriString).into(imageView, new Callback() {
+        picasso.load(uriString).fit().centerInside().into(imageView, new Callback() {
             @Override
             public void onSuccess() {
                 if (getDialog() == null) return;

@@ -163,7 +163,7 @@ public class Memo {
     }
 
     public String getImageUrl() {
-
+        if (getCitationResources() == null) return null;
         SourceContent sourceContent = getSourceContent();
         String imageUrl = null;
         if (sourceContent == null) {

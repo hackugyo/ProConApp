@@ -160,6 +160,7 @@ public class MainActivityViewProvider {
                 .load(resultUri)
                 .noPlaceholder()
                 .error(R.drawable.ic_action_reload)
+                .fit().centerInside()
                 .transform(new DocumentExifTransformation(activity, resultUri))
                 .into(getImageView(), new Callback() {
                     @Override
