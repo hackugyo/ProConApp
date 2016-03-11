@@ -145,6 +145,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     private NavigationView drawerRight;
     private EditText themeEditText;
     private BootstrapButton themeDeleteButton;
+    private BootstrapButton themeExportButton;
     private RecyclerClickable imageOnClickRecyclerListener;
     private ImageView imageThumbnailView;
 
@@ -350,7 +351,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         viewProvider.setImageView(provideImageThumbnailView());
         provideRightDrawer();
         provideRightDrawerTitle();
-        provideThemeDeleteButton();
+        setupRightDrawerButtons();
         provideRightDrawerRecyclerView();
 
         getDrawerManager().addDrawerListener(new KeyboardClosingDrawerListener());
@@ -511,10 +512,16 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         return themeEditText;
     }
 
+    private void setupRightDrawerButtons() {
+        provideThemeDeleteButton();
+        provideThemeExportButton();
+    }
+
     private BootstrapButton provideThemeDeleteButton() {
         if (themeDeleteButton == null) {
             themeDeleteButton = (BootstrapButton) provideRightDrawer().findViewById(R.id.button_delete_this_theme);
             themeDeleteButton.setBootstrapBrand(CustomBootStrapBrand.OTHER);
+            themeDeleteButton.setGravity(Gravity.LEFT|Gravity.CENTER_VERTICAL);
             themeDeleteButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -524,6 +531,39 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
             });
         }
         return themeDeleteButton;
+    }
+
+    private BootstrapButton provideThemeExportButton() {
+        if (themeExportButton == null) {
+            themeExportButton = (BootstrapButton) provideRightDrawer().findViewById(R.id.button_export_whole_memo);
+            themeExportButton.setBootstrapBrand(CustomBootStrapBrand.OTHER);
+            themeExportButton.setGravity(Gravity.LEFT|Gravity.CENTER_VERTICAL);
+            themeExportButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    showProgressDialog();
+                    // mainActivityHelper.
+                    MainActivityHelper.createExportationObservable(
+                            chatTheme.getId(),
+                            Observable.from(memos)
+                                    .observeOn(Schedulers.computation())
+                    )
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .subscribe(new Action1<Pair<Long, StringBuilder>>() {
+                                @Override
+                                public void call(Pair<Long, StringBuilder> result) {
+                                    hideProgressDialog();
+                                    if (result.first != chatTheme.getId()) {
+                                        return;
+                                    } else {
+                                        sendText(result.second.toString(), chatTheme.getTitle());
+                                    }
+                                }
+                            });
+                }
+            });
+        }
+        return themeExportButton;
     }
 
     /**
@@ -852,6 +892,21 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         Intent chooserIntent = Intent.createChooser(intentGallery, "画像の選択");
 
         startActivityForResult(chooserIntent, REQUEST_GALLERY_CHOOSER);
+    }
+
+    private void sendText(String text, String subject) {
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_SEND);
+        intent.setType("text/plain");
+        intent.putExtra(Intent.EXTRA_SUBJECT, subject);
+        intent.putExtra(Intent.EXTRA_TEXT, text);
+
+        List<ResolveInfo> resolveInfoList = getPackageManager().queryIntentActivities(intent, PackageManager.MATCH_ALL);
+        if (intent.resolveActivityInfo(getPackageManager(), 0) == null || resolveInfoList.size() == 0) {
+            Toast.makeText(self, "対応するアプリがインストールされていません。", Toast.LENGTH_LONG).show();
+        } else {
+            startActivity(intent);
+        }
     }
 
     /***********************************************

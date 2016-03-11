@@ -31,6 +31,7 @@ import rx.Observable;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 import rx.functions.Func1;
+import rx.functions.Func2;
 import rx.schedulers.Schedulers;
 
 /**
@@ -280,4 +281,48 @@ public class MainActivityHelper {
                 .distinct()
                 .toSortedList().toBlocking().single();
     }
+
+    static Observable<Pair<Long, StringBuilder>> createExportationObservable (final long themeId, Observable<Memo> memosObservable) {
+        return memosObservable
+                .map(new Func1<Memo, StringBuilder>() {
+                    @Override
+                    public StringBuilder call(Memo memo) {
+                        String text = memo.getMemo().replaceAll(StringUtils.getCRLF(), StringUtils.getCRLF() + "> ");
+                        StringBuilder stringBuilder = new StringBuilder(StringUtils.getCRLF())
+                                .append("<!--- ")  // <!-- ではなく<!---とするとよいらしい
+                                .append(memo.isPro() ? "賛成派" : "反対派").append(" -->")
+                                .append(StringUtils.getCRLF())
+                                .append("> ")
+                                .append(text);
+                        if (StringUtils.isPresent(memo.getCitationResource())) {
+                            stringBuilder
+                                    .append(StringUtils.getCRLF())
+                                    .append("> ")
+                                    .append(StringUtils.getCRLF())
+                                    .append("> -- ")
+                                    .append(memo.getCitationResource());
+                            if (StringUtils.isPresent(memo.getPages())) {
+                                stringBuilder.append(", ")
+                                        .append(memo.hasManyPages() ? "pp. " : "p. ")
+                                        .append(memo.getPages());
+                            }
+                        }
+                        return stringBuilder;
+                    }
+                })
+                .reduce(new StringBuilder(),
+                        new Func2<StringBuilder, StringBuilder, StringBuilder>() {
+                            @Override
+                            public StringBuilder call(StringBuilder stringBuilder, StringBuilder stringBuilder2) {
+                                return stringBuilder.append(StringUtils.getCRLF()).append(stringBuilder2);
+                            }
+                        })
+                .map(new Func1<StringBuilder, Pair<Long, StringBuilder>>() {
+                    @Override
+                    public Pair<Long, StringBuilder> call(StringBuilder stringBuilder) {
+                        return Pair.create(themeId, stringBuilder);
+                    }
+                });
+    }
+
 }
