@@ -169,6 +169,7 @@ dependencies {
     // UI Library.
     compile 'com.beardedhen:androidbootstrap:2.1.0'
     compile 'com.github.castorflex.smoothprogressbar:library-circular:1.2.0'
+    compile "me.henrytao:smooth-app-bar-layout:1.0.4"
 
     // for junit testing
     testCompile 'junit:junit:4.12'

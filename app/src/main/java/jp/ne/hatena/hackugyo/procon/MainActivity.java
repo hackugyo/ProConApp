@@ -595,6 +595,10 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
      * DB Access
      ****************************************/
 
+    /**
+     * メモの読み込み
+     * @return
+     */
     private Observable<List<Memo>> getLoadMemoObservable() {
         Observable<List<Memo>> listObservable = Observable.create(
                 new Observable.OnSubscribe<List<Memo>>() {
