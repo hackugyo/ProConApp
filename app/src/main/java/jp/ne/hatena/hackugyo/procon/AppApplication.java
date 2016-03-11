@@ -2,6 +2,7 @@ package jp.ne.hatena.hackugyo.procon;
 
 import android.app.Application;
 import android.content.Context;
+import android.content.SharedPreferences;
 
 import com.beardedhen.androidbootstrap.TypefaceProvider;
 import com.github.kubode.rxeventbus.RxEventBus;
@@ -51,6 +52,7 @@ public class AppApplication extends Application {
     private OkHttpClient mOkHttpClient;
     private RxEventBus bus;
     private DatabaseService databaseService;
+    private static SharedPreferences sSharedPreferences;
 
     @Override
     public void onCreate() {
@@ -188,6 +190,13 @@ public class AppApplication extends Application {
                 return response;
             }
         };
+    }
+
+    public static SharedPreferences getSharedPreferences() {
+        if (sSharedPreferences == null) {
+            sSharedPreferences = getContext().getSharedPreferences(Config.SHARED_PREFERENCES, Context.MODE_PRIVATE);
+        }
+        return sSharedPreferences;
     }
 
 

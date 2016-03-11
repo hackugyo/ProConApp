@@ -92,6 +92,8 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     private static final int REQUEST_CAMERA_CHOOSER = 1000;
     private static final int REQUEST_GALLERY_CHOOSER = 1001;
 
+    private static final String SHARED_PREFERENCE_LAST_THEME_ID = "MainActivity.SHARED_PREFERENCE_LAST_THEME_ID";
+
     /**
      * 長押しからのアイテム編集モード
      */
@@ -200,7 +202,13 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         setupViews();
 
         reloadChatThemeList();
-        chatTheme = ArrayUtils.last(chatThemeList);
+        final long latestChatThemeId = AppApplication.getSharedPreferences().getLong(SHARED_PREFERENCE_LAST_THEME_ID, 0);
+        chatTheme = Observable.from(chatThemeList).firstOrDefault(ArrayUtils.last(chatThemeList), new Func1<ChatTheme, Boolean>() {
+            @Override
+            public Boolean call(ChatTheme chatTheme) {
+                return chatTheme.getId() == latestChatThemeId;
+            }
+        }).toBlocking().single();
         reloadChatThemeMenu();
 
         //memo の表示
@@ -267,6 +275,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         if (memoRepository != null) memoRepository.onPause();
         if (chatThemeRepository != null) chatThemeRepository.onPause();
         if (citationResourceRepository != null) citationResourceRepository.onPause();
+        AppApplication.getSharedPreferences().edit().putLong(SHARED_PREFERENCE_LAST_THEME_ID, chatTheme.getId()).apply();
     }
 
     @Override
