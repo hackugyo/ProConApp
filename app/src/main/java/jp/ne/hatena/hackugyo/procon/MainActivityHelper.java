@@ -291,7 +291,14 @@ public class MainActivityHelper {
                         StringBuilder stringBuilder = new StringBuilder(StringUtils.getCRLF())
                                 .append("<!--- ")  // <!-- ではなく<!---とするとよいらしい
                                 .append(memo.isPro() ? "賛成派" : "反対派").append(" -->")
-                                .append(StringUtils.getCRLF())
+                                .append(StringUtils.getCRLF());
+                        if (memo.isReply()) {
+                            stringBuilder
+                                    .append("> @")
+                                    .append(memo.replyTo())
+                                    .append(StringUtils.getCRLF());
+                        }
+                        stringBuilder
                                 .append("> ")
                                 .append(text);
                         if (StringUtils.isPresent(memo.getCitationResource())) {

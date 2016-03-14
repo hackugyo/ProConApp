@@ -13,18 +13,20 @@ import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
+import java.util.Collections;
 import java.util.List;
 
 import jp.ne.hatena.hackugyo.procon.R;
 import jp.ne.hatena.hackugyo.procon.model.Memo;
 import jp.ne.hatena.hackugyo.procon.ui.RecyclerClickable;
+import jp.ne.hatena.hackugyo.procon.ui.RecyclerItemMovable;
 import jp.ne.hatena.hackugyo.procon.util.LogUtils;
 import jp.ne.hatena.hackugyo.procon.util.StringUtils;
 
 /**
  * Created by kwatanabe on 15/08/27.
  */
-public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapter.ChatLikeViewHolder> {
+public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapter.ChatLikeViewHolder> implements RecyclerItemMovable {
 
     private static final int VIEW_TYPE_NORMAL_BUBBLE = 0;
     private static final int VIEW_TYPE_URL_PREVIEW = 1;
@@ -172,6 +174,37 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
         return true;
     }
 
+    /******************************
+     * {@link RecyclerItemMovable}
+     *****************************/
+
+    @Override
+    public void onItemMoved(int fromPosition, int toPosition) {
+        if (fromPosition < toPosition) {
+            for (int i = fromPosition; i < toPosition; i++) {
+                Collections.swap(mMemos, i, i + 1);
+            }
+        } else {
+            for (int i = fromPosition; i > toPosition; i--) {
+                Collections.swap(mMemos, i, i - 1);
+            }
+        }
+        notifyItemMoved(fromPosition, toPosition);
+    }
+
+    @Override
+    public void onItemDismiss(int position) {
+        throw new IllegalStateException("Not Implemented.");
+    }
+
+    @Override
+    public void onItemInsert() {
+        throw new IllegalStateException("Not Implemented.");
+    }
+
+    /**
+     * ViewHolder
+     */
     public static class ChatLikeViewHolder extends RecyclerView.ViewHolder {
         private final LinearLayout citationResourceContainer;
         public TextView txtMessage;
@@ -229,6 +262,10 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
 
         public void setRemoved(boolean isRemoved) {
             this.content.setVisibility(isRemoved ? View.GONE : View.VISIBLE);
+        }
+
+        public void setSelected(boolean selected) {
+            // TODO 20160314 選択されたビューの中身をselectedにする
         }
     }
 

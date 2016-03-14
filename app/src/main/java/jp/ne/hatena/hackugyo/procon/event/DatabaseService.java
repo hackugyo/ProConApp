@@ -6,6 +6,7 @@ import android.support.v4.util.Pair;
 import com.github.kubode.rxeventbus.RxEventBus;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import jp.ne.hatena.hackugyo.procon.model.Memo;
 import jp.ne.hatena.hackugyo.procon.model.MemoRepository;
@@ -56,11 +57,21 @@ public class DatabaseService implements Subscribable<RequestDataSaveEvent> {
 
     @Override
     public void onEventAsync(RequestDataSaveEvent event) {
-        Memo memo = event.memo;
-        if(memoRepository.save(memo)) {
-            bus.post(new DataSavedEvent(memo, true));
+        List<Memo> memos = event.memos;
+        if (memos.size() == 1) {
+            Memo memo = memos.get(0);
+            if (memoRepository.save(memo)) {
+                bus.post(new DataSavedEvent(memo, true));
+            } else {
+                bus.post(new DataSavedEvent(memo, false));
+            }
         } else {
-            bus.post(new DataSavedEvent(memo, false));
+            ArrayList<Pair<Memo, Boolean>> pairs = new ArrayList<>();
+            for (Memo memo : memos) {
+                boolean save = memoRepository.save(memo); // ここでmemoインスタンスに必要ならidがふられる
+                pairs.add(Pair.create(memo, save));
+            }
+            bus.post(new DataSavedEvent(pairs));
         }
     }
 

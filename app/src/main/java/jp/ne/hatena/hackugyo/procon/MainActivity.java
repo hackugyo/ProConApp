@@ -17,6 +17,7 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -95,7 +96,6 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
     private static final String SHARED_PREFERENCE_LAST_THEME_ID = "MainActivity.SHARED_PREFERENCE_LAST_THEME_ID";
     private static final String SHARED_PREFERENCE_SHOW_REORDERING_HINT = "MainActivity.SHARED_PREFERENCE_SHOW_REORDERING_HINT";
-    private BootstrapButton reorderMemosButton;
 
     /**
      * 長押しからのアイテム編集モード
@@ -139,6 +139,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
     private final MainActivity self = this;
 
+    Toolbar toolbar;
     AppBarLayout appBar;
     // メイン部分のView管理
     MainActivityViewProvider viewProvider;
@@ -150,8 +151,13 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     private EditText themeEditText;
     private BootstrapButton themeDeleteButton;
     private BootstrapButton themeExportButton;
+    private BootstrapButton reorderMemosButton;
     private RecyclerClickable imageOnClickRecyclerListener;
     private ImageView imageThumbnailView;
+    /**
+     * メインのRecylerView（{@link #mainRecyclerView}）が並べ替え可能状態かどうか
+     */
+    private boolean isInReorderMode = false;
 
     RecyclerViewEmptySupport mainRecyclerView, summaryRecyclerView;
     ChatLikeListAdapter mainListAdapter;
@@ -180,6 +186,10 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     private BootstrapButton photoButton;
     private BootstrapButton cameraButton;
 
+    /**
+     * 並べ替えまえの状態を退避しておく
+     */
+    private ArrayList<Memo> stashedMemosForReordering;
 
 
     @Override
@@ -192,7 +202,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
         //toolbar の設置
         setContentView(R.layout.activity_main);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar_actionbar);
+        toolbar = (Toolbar) findViewById(R.id.toolbar_actionbar);
 
         if (toolbar != null) {
             setSupportActionBar(toolbar);
@@ -200,7 +210,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
             toolbar.setNavigationOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    getDrawerManager().openDrawer(Gravity.LEFT);
+                    if (!isInReorderMode) getDrawerManager().openDrawer(Gravity.LEFT);
                 }
             });
         }
@@ -241,7 +251,11 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     public boolean onCreateOptionsMenu(Menu menu) {
         //menu の表示
         MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.menu_main, menu);
+        if (isInReorderMode) {
+            inflater.inflate(R.menu.menu_main_reorder, menu);
+        } else {
+            inflater.inflate(R.menu.menu_main, menu);
+        }
 
         return super.onCreateOptionsMenu(menu);
     }
@@ -288,14 +302,33 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         //icon 押下時の処置
-        if (id == R.id.menu_globe) {
+        if (id == R.id.menu_edit_this_theme) {
             NavigationView drawer = provideRightDrawer();
             if (getDrawerManager().isDrawerOpen(drawer)) {
                 getDrawerManager().closeDrawer(drawer);
             } else {
-                getDrawerManager().openDrawer(drawer);
+                if (!isInReorderMode) getDrawerManager().openDrawer(drawer);
             }
             return true;
+        } else if (id == R.id.menu_done_reorder) {
+            if (Memo.setPositions(Observable.from(memos))) {
+                showProgressDialog();
+                updateMemoAsync(memos);
+            }
+            isInReorderMode = false;
+            setToolbarScrollable(true);
+            invalidateOptionsMenu();
+        } else if (id == R.id.menu_cancel_reorder) {
+            if (stashedMemosForReordering != null) {
+                memos.clear();
+                memos.addAll(stashedMemosForReordering);
+                stashedMemosForReordering.clear();
+                stashedMemosForReordering = null;
+                mainListAdapter.notifyDataSetChanged();
+            }
+            isInReorderMode = false;
+            setToolbarScrollable(true);
+            invalidateOptionsMenu();
         }
 
         return super.onOptionsItemSelected(item);
@@ -314,8 +347,8 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
             }
 
             Uri resultUri = (data != null ? data.getData() : tempUriForRequestChooser);
-            // dataからUriがとれない端末があるので対秘策
-
+            // dataからUriがとれない端末があるので退避した
+            LogUtils.d("data: " + resultUri);
             tempUriForRequestChooser = null;
             if(resultUri == null) {
                 // 取得失敗
@@ -339,6 +372,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                 return ;
             }
             Uri resultUri = (data != null ? data.getData() : tempUriForRequestChooser);
+            LogUtils.v("data: " + resultUri);
             if(resultUri == null) {
                 // 取得失敗
                 return;
@@ -362,6 +396,10 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         getDrawerManager().addDrawerListener(new KeyboardClosingDrawerListener());
 
         mainRecyclerView = (RecyclerViewEmptySupport) findViewById(R.id.listView);
+        { // D&D用のリスナと相互参照させる
+            itemTouchHelper.attachToRecyclerView(mainRecyclerView);
+            mainRecyclerView.addItemDecoration(itemTouchHelper);
+        }
         mainListAdapter = new ChatLikeListAdapter(this, memos, getMainOnClickRecyclerListener());
         mainListAdapter.setOnImageClickListener(getImageOnClickRecyclerListener());
         mainRecyclerView.setAdapter(mainListAdapter);
@@ -540,6 +578,10 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         return themeDeleteButton;
     }
 
+    /**
+     * 並べ替えモードに移行するボタン
+     * @return
+     */
     private BootstrapButton provideReorderMemosButton() {
         if (reorderMemosButton == null) {
             reorderMemosButton = (BootstrapButton) provideRightDrawer().findViewById(R.id.button_reorder_memos);
@@ -548,13 +590,29 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
             reorderMemosButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    // TODO 20160311 並べかえモードにする
+                    setToolbarScrollable(false);
+                    stashedMemosForReordering = ArrayUtils.copy(memos);
+                    isInReorderMode = true;
+                    invalidateOptionsMenu();
+                    getDrawerManager().closeDrawers();
                 }
             });
         }
         return reorderMemosButton;
     }
 
+    /**
+     * @see <a href="http://stackoverflow.com/a/33128251">参考リンク</a>
+     * @param isScrollable
+     */
+    private void setToolbarScrollable(boolean isScrollable) {
+        AppBarLayout.LayoutParams params = (AppBarLayout.LayoutParams) toolbar.getLayoutParams();
+        params.setScrollFlags(isScrollable ?
+                (AppBarLayout.LayoutParams.SCROLL_FLAG_ENTER_ALWAYS | AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL) :
+                (AppBarLayout.LayoutParams.SCROLL_FLAG_ENTER_ALWAYS)
+        );
+        if (!isScrollable) appBar.setExpanded(true);
+    }
 
     private BootstrapButton provideThemeExportButton() {
         if (themeExportButton == null) {
@@ -692,25 +750,50 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         RxBusProvider.getInstance().post(new RequestDataDeleteEvent(memo));
     }
 
+    private void updateMemoAsync(List<Memo> sortedMemos) {
+        RxBusProvider.getInstance().post(new RequestDataSaveEvent(sortedMemos));
+    }
+
+
     private void onMemoSaved(DataSavedEvent event) {
-        Memo savedMemo = event.savedMemo;
-        Memo inList = findById(memos, savedMemo.getId());
-        if (event.isSuccess) {
-            if (inList == null) {
-                memos.add(savedMemo);
-                renewCitationResources();
-                //ListView に設置
-                mainListAdapter.notifyDataSetChanged();
-                summaryListAdapter.reloadMemos(self.memos);
-                smoothScrollMainRecyclerView(mainRecyclerView, mainListAdapter);
-                mainActivityHelper.loadPreviewAsync(savedMemo);
-            } else {
-                mainListAdapter.notifyItemChanged(memos.indexOf(inList));
-            }
+        if (event.pairs.size() != 1) {
+            onMemosUpdated(event.pairs);
         } else {
-            LogUtils.w("something wrong");
-            viewProvider.resumeInputTexts((inList.isForUrl() ? "" : inList.getMemo()), inList.getCitationResource(), inList.getPages());
+            Memo savedMemo = event.pairs.get(0).first;
+            Memo inList = findById(memos, savedMemo.getId());
+            if (event.pairs.get(0).second) {
+                if (inList == null) {
+                    memos.add(savedMemo);
+                    renewCitationResources();
+                    //ListView に設置
+                    mainListAdapter.notifyDataSetChanged();
+                    summaryListAdapter.reloadMemos(self.memos);
+                    smoothScrollMainRecyclerView(mainRecyclerView, mainListAdapter);
+                    mainActivityHelper.loadPreviewAsync(savedMemo);
+                } else {
+                    mainListAdapter.notifyItemChanged(memos.indexOf(inList));
+                }
+            } else {
+                LogUtils.w("something wrong");
+                viewProvider.resumeInputTexts((inList.isForUrl() ? "" : inList.getMemo()), inList.getCitationResource(), inList.getPages());
+            }
         }
+    }
+
+    private void onMemosUpdated(ArrayList<Pair<Memo, Boolean>> updatedResults) {
+        LogUtils.d("並べかえ完了");
+        Pair<Memo, Boolean> firstFailure = Observable.from(updatedResults)
+                .firstOrDefault(null, new Func1<Pair<Memo,Boolean>, Boolean>() {
+                    @Override
+                    public Boolean call(Pair<Memo, Boolean> memoBooleanPair) {
+                        return !memoBooleanPair.second;
+                    }
+                }).toBlocking().single();
+        if (firstFailure != null) {
+            LogUtils.w("並べかえ失敗 " + firstFailure.first);
+        }
+        reloadChatThemeAsync();
+        hideProgressDialog();
     }
 
     private void onMemoDeleted(DataDeletedEvent deleted) {
@@ -761,6 +844,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
                 @Override
                 public boolean onRecyclerLongClicked(View v, final int position) {
+                    if (isInReorderMode) return false;
                     if (memos.size() <= position) {
                         LogUtils.w("あれ？" + memos.size() + " vs. " + position);
                         return false;
@@ -1032,7 +1116,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                             case R.id.menu_settings:
                                 return true;
                             case R.id.menu_help: // なおここでfalseを返すと選択されなかったことになるもよう
-                                shareToTwitter("@hackugyo #プロコン ");
+                                shareToTwitter("@hackugyo%20%20プロコン%20");
                                 return false;
                             default:
                                 LogUtils.w("missing menu called. at " + item.getItemId());
@@ -1326,4 +1410,46 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         sendIntent.setType("text/plain");
         startActivity(sendIntent);
     }
+
+    /**
+     * RecyclerViewの移動イベントを受け取ります
+     */
+    private ItemTouchHelper itemTouchHelper = new ItemTouchHelper(new ItemTouchHelper.Callback() {
+        @Override
+        public int getMovementFlags(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
+            if (isInReorderMode) {
+                final int dragFlags = ItemTouchHelper.UP | ItemTouchHelper.DOWN;
+                final int swipeFlags = 0;
+                return makeMovementFlags(dragFlags, swipeFlags);
+            } else {
+                return makeMovementFlags(0, 0);
+            }
+        }
+
+        @Override
+        public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
+            final int fromPos = viewHolder.getAdapterPosition();
+            final int toPos = target.getAdapterPosition();
+            mainListAdapter.onItemMoved(fromPos, toPos);
+            return true;
+        }
+
+        @Override
+        public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
+        }
+
+        @Override
+        public void onSelectedChanged(RecyclerView.ViewHolder viewHolder, int actionState) {
+            super.onSelectedChanged(viewHolder, actionState);
+            if (actionState == ItemTouchHelper.ACTION_STATE_DRAG) {
+                ((ChatLikeListAdapter.ChatLikeViewHolder) viewHolder).setSelected(true);
+            }
+        }
+
+        @Override
+        public void clearView(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
+            super.clearView(recyclerView, viewHolder);
+            ((ChatLikeListAdapter.ChatLikeViewHolder) viewHolder).setSelected(false);
+        }
+    });
 }

@@ -105,7 +105,7 @@ public class MemoRepository {
 
     public List<Memo> findAll() {
         QueryBuilder<Memo, Integer> qb = memoDao.queryBuilder();
-        qb.orderBy(Memo.TIMESTAMP_FIELD, true); // TODO 20160210 by own order
+        qb.orderBy(Memo.POSITION_FIELD, true).orderBy(Memo.TIMESTAMP_FIELD, true);
 
         PreparedQuery<Memo> preparedQuery = null;
         try {

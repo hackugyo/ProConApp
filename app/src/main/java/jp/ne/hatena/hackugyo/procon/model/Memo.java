@@ -2,6 +2,7 @@ package jp.ne.hatena.hackugyo.procon.model;
 
 import android.util.Patterns;
 
+import com.github.davidmoten.util.MapWithIndex;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 import com.leocardz.link.preview.library.SourceContent;
@@ -20,6 +21,7 @@ import rx.functions.Func1;
 @DatabaseTable(tableName = "Memo")
 public class Memo {
     public static final String TIMESTAMP_FIELD = "timestamp";
+    public static final String POSITION_FIELD = "position";
 
     @DatabaseField(generatedId = true, allowGeneratedIdInsert = true)
     Long id;
@@ -40,7 +42,7 @@ public class Memo {
     @DatabaseField(foreign = true, foreignAutoRefresh = true)
     private ChatTheme chatTheme;
 
-    @DatabaseField(canBeNull = false)
+    @DatabaseField(canBeNull = false, columnName = POSITION_FIELD)
     Long position;
 
     /**
@@ -53,6 +55,8 @@ public class Memo {
     private SourceContent mSourceContent;
     private List<CitationResource> citationResources;
     private boolean isRemoved = false;
+    private boolean isChanged = false;
+    private boolean mReplyTo;
 
     public Memo() { // no-arg constructor
         // Empty
@@ -217,17 +221,55 @@ public class Memo {
         }
     }
 
+    /**
+     * 渡されたすべてのメモに順序を設定します。
+     * @param sortedMemos
+     * @return 変更があった場合true、なければfalse
+     */
+    public static boolean setPositions(Observable<Memo> sortedMemos) {
+        sortedMemos
+                .compose(MapWithIndex.<Memo>instance())
+                .map(new Func1<MapWithIndex.Indexed<Memo>, Memo>() {
+                    @Override
+                    public Memo call(MapWithIndex.Indexed<Memo> memoIndexed) {
+                        Memo memo = memoIndexed.value();
+                        if (memo.position == null || memo.position != memoIndexed.index()) {
+                            memo.isChanged = true;
+                            memo.position = memoIndexed.index();
+                        }
+                        return memo;
+                    }
+                }).subscribe();
+        Memo single = sortedMemos.firstOrDefault(null, new Func1<Memo, Boolean>() {
+            @Override
+            public Boolean call(Memo memo) {
+                return memo.isChanged;
+            }
+        }).toBlocking().single();
+        return single != null;
+    }
+
 
     @Override
     public String toString() {
         String s = super.toString();
         return StringUtils.build(s, "{",
                 "id: ", StringUtils.valueOf(id),
+                ", position: ", StringUtils.valueOf(position),
                 ", memo: ", memo,
                 ", date: ", getDate(),
                 ", isPro: ", StringUtils.valueOf(isPro()),
                 ", pages: ", pages,
+                ", replyTo(id): ", StringUtils.valueOf(replyTo),
                 ", chatTheme: ", StringUtils.valueOf(chatTheme.getId()),
                 "}");
+    }
+
+    public boolean isReply() {
+        return replyTo != null;
+    }
+
+    public Long replyTo() {
+        return replyTo;
     }
 }

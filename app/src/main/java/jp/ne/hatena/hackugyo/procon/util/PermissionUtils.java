@@ -32,7 +32,7 @@ public class PermissionUtils {
         if (permissionsShouldShowRequestPermissionRationale != null && permissionsShouldShowRequestPermissionRationale.length > 0) {
             // ダイアログを表示する場合。
             // ここで一発アクセスする目的を説明してからリクエストするのが推奨されている。
-            Toast.makeText(activity, "必要なパーミッションです。", Toast.LENGTH_LONG).show(); // TODO 20160118 パーミッション確認
+            Toast.makeText(activity, "必要なパーミッションです。", Toast.LENGTH_LONG).show();
         }
 
         if (permissionsNotGranted != null && permissionsNotGranted.length > 0) {

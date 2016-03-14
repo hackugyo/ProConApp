@@ -26,7 +26,7 @@ public class ChatTheme {
     @DatabaseField(columnName = TIMESTAMP_FIELD)
     Long dateInMillis;
 
-    @ForeignCollectionField
+    @ForeignCollectionField(eager = false, orderColumnName = Memo.POSITION_FIELD)
     private ForeignCollection<Memo> children;
 
     public ChatTheme() {

@@ -21,4 +21,8 @@
     <string name="suggestion_hint_from">過去に入力した出典情報</string>
 
     <string name="error_image_not_found">読み込めませんでした。画像が削除されてしまったおそれがあります。</string>
+
+
+    <string name="menu_title_done_reordering">OK</string>
+    <string name="menu_title_cancel_reordering">キャンセル</string>
 </resources>

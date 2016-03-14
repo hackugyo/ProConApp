@@ -87,7 +87,7 @@ public class ChatThemeRepository {
 
         QueryBuilder<ChatTheme, Integer> qb = chatThemeDao.queryBuilder();
         qb.orderBy(ChatTheme.TIMESTAMP_FIELD, true); // TODO 20160210 by own order
-        qb.limit(1);
+        qb.limit(1L);
 
         PreparedQuery<ChatTheme> preparedQuery = null;
         try {
