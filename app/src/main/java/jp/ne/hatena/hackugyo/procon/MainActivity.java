@@ -9,6 +9,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
 import android.support.v4.util.Pair;
@@ -138,6 +139,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
     private final MainActivity self = this;
 
+    AppBarLayout appBar;
     // メイン部分のView管理
     MainActivityViewProvider viewProvider;
     private ArrayAdapter citationResourceSuggestionAdapter;
@@ -202,6 +204,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                 }
             });
         }
+        appBar = (AppBarLayout) findViewById(R.id.main_appbar);
         setupViews();
 
         reloadChatThemeList();
@@ -641,9 +644,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                         self.memos.clear();
                         self.memos.addAll(memos);
                         mainListAdapter.notifyDataSetChanged();
-                        if (mainListAdapter.getItemCount() > 0) {
-                            mainRecyclerView.smoothScrollToPosition(Math.max(0, mainListAdapter.getItemCount() - 1));
-                        }
+                        smoothScrollMainRecyclerView(mainRecyclerView, mainListAdapter);
                         summaryListAdapter.reloadMemos(self.memos);
                     }
                 });
@@ -665,8 +666,13 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
             //Keyboard の消去，EditText 内のデータ消去
             viewProvider.resetInputTexts(v);
 
-            mainRecyclerView.smoothScrollToPosition(Math.max(0, mainListAdapter.getItemCount() - 1));
+            smoothScrollMainRecyclerView(mainRecyclerView, mainListAdapter);
         }
+    }
+
+    private void smoothScrollMainRecyclerView(RecyclerView recyclerView, RecyclerView.Adapter adapter) {
+        appBar.setExpanded(false, true); // AppBarLayoutを閉じてから、いちばん下までスクロールさせる
+        recyclerView.smoothScrollToPosition(Math.max(0, adapter.getItemCount() - 1));
     }
 
     private Memo createMemo(String text, Calendar cal, String resource, String pages, boolean isPro) {
@@ -696,7 +702,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                 //ListView に設置
                 mainListAdapter.notifyDataSetChanged();
                 summaryListAdapter.reloadMemos(self.memos);
-                mainRecyclerView.smoothScrollToPosition(Math.max(0, mainListAdapter.getItemCount() - 1));
+                smoothScrollMainRecyclerView(mainRecyclerView, mainListAdapter);
                 mainActivityHelper.loadPreviewAsync(savedMemo);
             } else {
                 mainListAdapter.notifyItemChanged(memos.indexOf(inList));

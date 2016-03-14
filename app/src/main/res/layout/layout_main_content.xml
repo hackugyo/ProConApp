@@ -12,6 +12,24 @@
         android:id="@+id/main_content"
         android:layout_above="@+id/separator"
         >
+
+        <android.support.design.widget.AppBarLayout
+            android:id="@+id/main_appbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:theme="@style/AppTheme.PopupOverlay"
+            >
+            <android.support.v7.widget.Toolbar
+                android:id="@+id/toolbar_actionbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                android:background="?attr/colorPrimary"
+                app:navigationIcon="@drawable/ic_home"
+                app:layout_scrollFlags="scroll|enterAlways"
+                app:popupTheme="@style/AppTheme.PopupOverlay"
+                />
+        </android.support.design.widget.AppBarLayout>
+
         <jp.ne.hatena.hackugyo.procon.ui.widget.RecyclerViewEmptySupport
             android:id="@+id/listView"
             android:layout_width="match_parent"
@@ -21,36 +39,8 @@
             android:clipToPadding="false"
             android:divider="#00000000"
             android:transcriptMode="alwaysScroll"
-            app:layout_behavior="com.evs.demo.layout.FixedScrollingViewBehavior"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior"
             />
-
-        <me.henrytao.smoothappbarlayout.SmoothAppBarLayout
-            android:id="@+id/smoothAppBarLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:theme="@style/AppTheme.PopupOverlay"
-            >
-
-            <android.support.design.widget.CollapsingToolbarLayout
-                android:id="@+id/collapsing_toolbar_layout"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                app:titleEnabled="false"
-                app:layout_scrollFlags="scroll|enterAlways"
-                >
-                <android.support.v7.widget.Toolbar
-                    android:id="@+id/toolbar_actionbar"
-                    android:layout_width="match_parent"
-                    android:layout_height="?attr/actionBarSize"
-                    android:background="?attr/colorPrimary"
-                    app:layout_scrollFlags="scroll|enterAlways"
-                    app:navigationIcon="@drawable/ic_home"
-                    app:popupTheme="@style/AppTheme.PopupOverlay"
-                    />
-
-            </android.support.design.widget.CollapsingToolbarLayout>
-        </me.henrytao.smoothappbarlayout.SmoothAppBarLayout>
-
 
     </android.support.design.widget.CoordinatorLayout>
 
