@@ -1116,7 +1116,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                             case R.id.menu_settings:
                                 return true;
                             case R.id.menu_help: // なおここでfalseを返すと選択されなかったことになるもよう
-                                shareToTwitter("@hackugyo%20%20プロコン%20");
+                                shareToTwitter("@hackugyo%20%23プロコンAndroid%20");
                                 return false;
                             default:
                                 LogUtils.w("missing menu called. at " + item.getItemId());
