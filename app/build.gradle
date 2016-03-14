@@ -23,6 +23,7 @@ android {
         buildConfigField("String", "BOOTSTRAP_DATA_TIMESTAMP", "\"${bootstrap_data_timestamp}\"")
         buildConfigField("boolean", "IS_MOCK", "false")
         buildConfigField("boolean", "IS_STAGING", "false")
+        buildConfigField("Integer", "DB_VERSION", "1")
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }

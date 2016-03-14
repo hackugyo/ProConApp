@@ -10,6 +10,7 @@ import com.j256.ormlite.table.TableUtils;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import jp.ne.hatena.hackugyo.procon.BuildConfig;
 import jp.ne.hatena.hackugyo.procon.util.LogUtils;
 
 /**
@@ -24,7 +25,7 @@ public class DatabaseHelper extends OrmLiteSqliteOpenHelper {
     /**
      * データベースのヴァージョン。今後、テーブルの追加や変更をした際には、このヴァージョンを更新することで、アプリにDBが更新されたことを伝える。
      */
-    public static final int DATABASE_VERSION = 1;
+    public static final int DATABASE_VERSION = BuildConfig.DB_VERSION;
 
     /**
      * いま、データベースとアプリとの接続が何カ所で行われているかのカウンタ。
@@ -56,7 +57,19 @@ public class DatabaseHelper extends OrmLiteSqliteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase database, ConnectionSource connectionSource, int oldVersion, int newVersion) {
-        // DBヴァージョンが上がった際の、DBのアップグレード処理（今回は割愛）
+        // DBヴァージョンが上がった際の、DBのアップグレード処理
+//        try {
+//            while(++oldVersion <= newVersion) {
+//                switch (oldVersion) {
+//                    case 2: // DB ver. 2にあがった
+//                        break;
+//                    default:
+//                        break;
+//                }
+//            }
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//        }
     }
 
     public static synchronized DatabaseHelper getHelper(Context context) {

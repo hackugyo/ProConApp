@@ -30,6 +30,7 @@ public class Memo {
     Calendar date;
     @DatabaseField(columnName = TIMESTAMP_FIELD)
     Long dateInMillis;
+
     @DatabaseField
     boolean isPro;
 
@@ -39,10 +40,18 @@ public class Memo {
     @DatabaseField(foreign = true, foreignAutoRefresh = true)
     private ChatTheme chatTheme;
 
+    @DatabaseField(canBeNull = false)
+    Long position;
+
+    /**
+     * 同メモ内のどのメモへの応答かを保持する
+     */
+    @DatabaseField
+    Long replyTo;
+
     private boolean isLoaded = false;
     private SourceContent mSourceContent;
     private List<CitationResource> citationResources;
-    private boolean mRemoved;
     private boolean isRemoved = false;
 
     public Memo() { // no-arg constructor

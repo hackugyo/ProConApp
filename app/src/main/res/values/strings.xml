@@ -7,8 +7,8 @@
     <string name="no">いいえ</string>
 
 
-    <string name="save_as_pro">{fa_thumbs_o_up} 賛成意見</string>
-    <string name="save_as_con">反対意見 {fa_thumbs_o_down}</string>
+    <string name="save_as_pro">{fa_thumbs_up} 賛成意見</string>
+    <string name="save_as_con">反対意見 {fa_thumbs_down}</string>
     <string name="hint">note here</string>
     <string name="hint_citation_resource">出典情報（URLも可）</string>
     <string name="toast_theme_name_edited">タイトルを変更しました</string>
