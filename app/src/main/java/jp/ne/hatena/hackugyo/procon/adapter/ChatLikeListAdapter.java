@@ -223,6 +223,11 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
          */
         public ChatLikeViewHolder(View v) {
             super(v);
+            // タップ時のフィードバック
+            v.setClickable(true);
+            v.setFocusable(true);
+            v.setFocusableInTouchMode(true);
+
             numberOfTheMessage = (TextView) v.findViewById(R.id.txtInfoNumber);
             txtMessage = (TextView) v.findViewById(R.id.txtMessage);
             content = (LinearLayout) v.findViewById(R.id.content);
@@ -265,7 +270,7 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
         }
 
         public void setSelected(boolean selected) {
-            // TODO 20160314 選択されたビューの中身をselectedにする
+            this.itemView.setSelected(selected);
         }
     }
 

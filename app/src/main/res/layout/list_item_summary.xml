@@ -4,14 +4,20 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
-
+    android:layout_height="wrap_content"
+    android:background="@drawable/selector_apptheme"
+    android:clickable="true"
+    android:focusable="true"
+    android:focusableInTouchMode="true"
+    >
+    <!-- clickable, focusable and focusableInTouchModeをtrueにすると解決する -->
+    <!-- @see http://stackoverflow.com/a/25393512/6064890 -->
     <TextView
         android:id="@+id/txtMessage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textColor="@android:color/black"
-        android:autoLink="web"
+        android:autoLink="none"
         android:ellipsize="end"
         android:singleLine="true"
         android:maxLines="1"
