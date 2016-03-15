@@ -10,6 +10,7 @@
         android:layout_height="wrap_content"
         android:layout_alignParentRight="true"
         android:orientation="vertical"
+        android:duplicateParentState="true"
         android:clickable="true"
         android:focusable="true"
         android:focusableInTouchMode="true"
@@ -72,7 +73,8 @@
             <ImageView
                 android:id="@+id/image"
                 android:layout_width="match_parent"
-                android:layout_height="200dp"/>
+                android:layout_height="200dp"
+                />
         </LinearLayout>
         <include
             layout="@layout/layout_citation_resource"

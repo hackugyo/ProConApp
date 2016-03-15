@@ -94,6 +94,7 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
             @Override
             public boolean onLongClick(View view) {
                 if (mOnClickListener != null) {
+                    ((ViewGroup)view.getParent()).setPressed(true);
                     return mOnClickListener.onRecyclerLongClicked(view, position);
                 }
                 return false;
@@ -254,6 +255,7 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
                 public boolean onLongClick(View v) {
                     TextView tv = (TextView) v;
                     if (tv.getSelectionStart() == -1 && tv.getSelectionEnd() == -1) {
+                        itemView.setPressed(true);
                         return content.performLongClick();
                     }
                     return false;

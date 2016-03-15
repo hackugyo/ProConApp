@@ -24,6 +24,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -847,6 +848,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                     if (isInReorderMode) return false;
                     if (memos.size() <= position) {
                         LogUtils.w("あれ？" + memos.size() + " vs. " + position);
+                        v.setPressed(false);
                         return false;
                     }
                     //snackbar をクリックで消す処置
@@ -872,6 +874,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                     args.putIntegerArrayList(CHOICE_IDS, EditModeEnum.idsFrom(items));
                     ChoiceDialogFragment choiceDialogFragment = ChoiceDialogFragment.newInstance(self, args, "", null,EditModeEnum.titlesFrom(items));
                     showDialogFragment(choiceDialogFragment, TAG_CHOOSE_EDIT_MODE);
+                    v.setPressed(false);
                     return true;
                 }
             };
