@@ -114,6 +114,7 @@ public class MainActivityViewProvider {
 
         if (imageContainer == null) imageContainer = (ViewGroup) findViewById(R.id.imageViewContainer);
         imageContainer.setVisibility(View.GONE);
+        imageUri = null;
 
     }
 
