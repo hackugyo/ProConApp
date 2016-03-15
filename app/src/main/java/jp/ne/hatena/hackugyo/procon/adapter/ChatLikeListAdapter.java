@@ -58,7 +58,7 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
     }
 
     @Override
-    public void onBindViewHolder(final ChatLikeListAdapter.ChatLikeViewHolder holder, final int position) {
+    public void onBindViewHolder(ChatLikeListAdapter.ChatLikeViewHolder holder, final int position) {
         Memo memo = mMemos.get(position);
         boolean isPro = memo.isPro();
         //to simulate whether it me or other sender
@@ -113,6 +113,7 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
                 @Override
                 public boolean onLongClick(View view) {
                     if (mOnImageClickListener != null) {
+                        ((ViewGroup)view.getParent().getParent().getParent()).setPressed(true);
                         return mOnImageClickListener.onRecyclerLongClicked(view, position);
                     }
                     return false;

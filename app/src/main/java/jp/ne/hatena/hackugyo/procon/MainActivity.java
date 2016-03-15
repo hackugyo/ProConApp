@@ -24,7 +24,6 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -892,11 +891,12 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
                 @Override
                 public void onRecyclerButtonClicked(View v, int position) {
-
+                    throw new IllegalStateException("Not Implemented.");
                 }
 
                 @Override
                 public boolean onRecyclerLongClicked(View v, int position) {
+                    v.setSelected(false);
                     return false;
                 }
             };
@@ -915,6 +915,8 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                     Memo memo = memos.get(position);
                     if (memo.isWithPhoto()) {
                         showImageEnlarge(memo.getImageUrl());
+                    } else if (memo.isForUrl()) {
+                        launchExternalBrowser(memo.getCitationResource());
                     }
 
                 }
