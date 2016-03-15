@@ -64,8 +64,10 @@ import jp.ne.hatena.hackugyo.procon.ui.fragment.ConfirmDialogFragment;
 import jp.ne.hatena.hackugyo.procon.ui.fragment.ImageDialogFragment;
 import jp.ne.hatena.hackugyo.procon.ui.fragment.InputDialogFragment;
 import jp.ne.hatena.hackugyo.procon.ui.widget.CustomBootStrapBrand;
+import jp.ne.hatena.hackugyo.procon.ui.widget.ItemClickSupport;
 import jp.ne.hatena.hackugyo.procon.ui.widget.KeyboardClosingDrawerListener;
 import jp.ne.hatena.hackugyo.procon.ui.widget.RecyclerViewEmptySupport;
+import jp.ne.hatena.hackugyo.procon.util.AdapterUtils;
 import jp.ne.hatena.hackugyo.procon.util.ArrayUtils;
 import jp.ne.hatena.hackugyo.procon.util.EditTextUtils;
 import jp.ne.hatena.hackugyo.procon.util.LogUtils;
@@ -176,7 +178,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     private MainActivityHelper mainActivityHelper;
 
     private NavigationView.OnNavigationItemSelectedListener onNavigationItemSelectedListener;
-    private RecyclerClickable mainOnClickRecyclerListener, summaryOnClickRecyclerListener;
+    private RecyclerClickable mainOnClickRecyclerListener;
 
     private CompositeSubscription compositeSubscription;
     /**
@@ -655,7 +657,14 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         if (summaryRecyclerView == null) {
             View container = provideRightDrawer();
             summaryRecyclerView = (RecyclerViewEmptySupport) container.findViewById(R.id.listView_summary);
-            summaryListAdapter = new SummaryListAdapter(this, getSummaryOnClickRecyclerListener());
+            ItemClickSupport.addTo(summaryRecyclerView).setOnItemClickListener(new ItemClickSupport.OnItemClickListener() {
+                @Override
+                public void onItemClicked(final RecyclerView recyclerView, int position, View v) {
+                    Memo memoAtPosition = summaryListAdapter.getMemoAtPosition(position);
+                    smoothScrollMainRecyclerView(mainRecyclerView, mainListAdapter, memoAtPosition);
+                }
+            });
+            summaryListAdapter = new SummaryListAdapter(this, null);
             summaryRecyclerView.setAdapter(summaryListAdapter);
             LinearLayoutManager llm = new LinearLayoutManager(this);
             llm.setOrientation(LinearLayoutManager.VERTICAL);
@@ -729,8 +738,26 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     }
 
     private void smoothScrollMainRecyclerView(RecyclerView recyclerView, RecyclerView.Adapter adapter) {
+        smoothScrollMainRecyclerView(recyclerView, Math.max(0, adapter.getItemCount() - 1));
+    }
+
+    private void smoothScrollMainRecyclerView(RecyclerView recyclerView, RecyclerView.Adapter adapter, Memo memo) {
+        final long id = memo.getId();
+        List<Long> single = AdapterUtils.getAdapterContentFrom(adapter)
+                .toList()
+                .toBlocking().single();
+        int position = single.indexOf(id);
+        if (position >= 0) {
+            // 閉じないほうが使いがってよいと思われる getDrawerManager().closeDrawers();
+            smoothScrollMainRecyclerView(recyclerView,  position);
+        } else {
+            LogUtils.w("到達不可能：" + memo);
+        }
+    }
+
+    private void smoothScrollMainRecyclerView(RecyclerView recyclerView, int position) {
         appBar.setExpanded(false, true); // AppBarLayoutを閉じてから、いちばん下までスクロールさせる
-        recyclerView.smoothScrollToPosition(Math.max(0, adapter.getItemCount() - 1));
+        recyclerView.smoothScrollToPosition(position);
     }
 
     private Memo createMemo(String text, Calendar cal, String resource, String pages, boolean isPro) {
@@ -880,30 +907,6 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         }
         return mainOnClickRecyclerListener;
     }
-
-    private RecyclerClickable getSummaryOnClickRecyclerListener() {
-        if (summaryOnClickRecyclerListener == null) {
-            summaryOnClickRecyclerListener = new RecyclerClickable() {
-                @Override
-                public void onRecyclerClicked(View v, int position) {
-
-                }
-
-                @Override
-                public void onRecyclerButtonClicked(View v, int position) {
-                    throw new IllegalStateException("Not Implemented.");
-                }
-
-                @Override
-                public boolean onRecyclerLongClicked(View v, int position) {
-                    v.setSelected(false);
-                    return false;
-                }
-            };
-        }
-        return summaryOnClickRecyclerListener;
-    }
-
 
     private RecyclerClickable getImageOnClickRecyclerListener() {
         if (imageOnClickRecyclerListener == null) {

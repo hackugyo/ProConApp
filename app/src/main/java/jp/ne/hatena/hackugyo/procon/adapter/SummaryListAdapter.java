@@ -38,6 +38,7 @@ public class SummaryListAdapter  extends RecyclerView.Adapter<SummaryListAdapter
     private final int proColor, conColor;
     private Activity context;
     private final List<Memo> pros, cons;
+    private RecyclerView recyclerView;
 
     public SummaryListAdapter(Activity context, RecyclerClickable onClickListener) {
         this.context = context;
@@ -47,6 +48,18 @@ public class SummaryListAdapter  extends RecyclerView.Adapter<SummaryListAdapter
 
         proColor = ContextCompat.getColor(context, R.color.orange_600);
         conColor = ContextCompat.getColor(context, R.color.blue_a400);
+    }
+
+    @Override
+    public void onAttachedToRecyclerView(RecyclerView recyclerView) {
+        super.onAttachedToRecyclerView(recyclerView);
+        this.recyclerView = recyclerView;
+    }
+
+    @Override
+    public void onDetachedFromRecyclerView(RecyclerView recyclerView) {
+        super.onDetachedFromRecyclerView(recyclerView);
+        this.recyclerView = null;
     }
 
     @Override
@@ -61,7 +74,7 @@ public class SummaryListAdapter  extends RecyclerView.Adapter<SummaryListAdapter
     }
 
     @Override
-    public void onBindViewHolder(SummaryListAdapter.SummaryViewHolder holder, int position) {
+    public void onBindViewHolder(SummaryListAdapter.SummaryViewHolder holder, final int position) {
         if (holder.getItemViewType() == VIEW_TYPE_HEADER) {
             boolean isPro = (position == 0 && this.pros.size() != 0);
             String title = isPro ? ("賛成派" + this.pros.size() + "人") : ("反対派" + this.cons.size() + "人") ;
@@ -69,20 +82,29 @@ public class SummaryListAdapter  extends RecyclerView.Adapter<SummaryListAdapter
             holder.itemView.setBackgroundColor(isPro ? proColor : conColor);
             holder.txtMessage.setText(title);
         } else {
-            int proPosition = getPositionInPro(position);
-            if (proPosition >= 0) {
-                Memo memo = this.pros.get(proPosition);
+            Memo memo = getMemoAtPosition(position);
+            if (memo != null) {
                 holder.txtMessage.setText(memo.getCitationResource());
+
+            }
+
+        }
+    }
+
+    public Memo getMemoAtPosition(int position) {
+        int proPosition = getPositionInPro(position);
+        Memo memo = null;
+        if (proPosition >= 0) {
+            memo = this.pros.get(proPosition);
+        } else {
+            int conPosition = getPositionInCon(position);
+            if (conPosition >= 0) {
+                memo = this.cons.get(conPosition);
             } else {
-                int conPosition = getPositionInCon(position);
-                if (conPosition >= 0) {
-                    Memo memo = this.cons.get(conPosition);
-                    holder.txtMessage.setText(memo.getCitationResource());
-                } else {
-                    LogUtils.w("!? " + position + " / " + getItemCount());
-                }
+                LogUtils.w("!? " + position + " / " + getItemCount());
             }
         }
+        return  memo;
     }
 
     private int getPositionInPro(int realPosition) {
@@ -170,6 +192,7 @@ public class SummaryListAdapter  extends RecyclerView.Adapter<SummaryListAdapter
 
     public static class SummaryViewHolder extends RecyclerView.ViewHolder {
 
+        private final SummaryViewHolder self = this;
         public TextView txtMessage;
         public SummaryViewHolder(View itemView) {
             super(itemView);

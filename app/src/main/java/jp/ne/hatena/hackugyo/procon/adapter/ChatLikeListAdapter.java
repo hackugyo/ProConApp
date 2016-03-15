@@ -136,7 +136,7 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
 
     @Override
     public long getItemId(int position) {
-        return mMemos == null ? -1 : mMemos.get(position).getId(); // TODO 20160210 localId
+        return mMemos == null ? -1 : mMemos.get(position).getId(); // TODO 20160210 ネットワークユニークなlocalId
     }
 
     @Override
@@ -225,10 +225,6 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
          */
         public ChatLikeViewHolder(View v) {
             super(v);
-            // タップ時のフィードバック
-            v.setClickable(true);
-            v.setFocusable(true);
-            v.setFocusableInTouchMode(true);
 
             numberOfTheMessage = (TextView) v.findViewById(R.id.txtInfoNumber);
             txtMessage = (TextView) v.findViewById(R.id.txtMessage);
