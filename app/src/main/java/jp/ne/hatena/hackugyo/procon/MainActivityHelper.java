@@ -332,4 +332,52 @@ public class MainActivityHelper {
                 });
     }
 
+    static Observable<Pair<Long, StringBuilder>> createExportationCitationsObservable(final long themeId,
+                                                                                      Observable<Memo> prosObservable,
+                                                                                      Observable<Memo> consObservable) {
+        Observable<StringBuilder> pros = prosObservable
+                .map(new Func1<Memo, StringBuilder>() {
+                    @Override
+                    public StringBuilder call(Memo memo) {
+                        StringBuilder stringBuilder = new StringBuilder();
+                        stringBuilder
+                                .append("* ")
+                                .append(memo.getCitationResource());
+                        return stringBuilder;
+                    }
+                });
+        Observable<StringBuilder> cons = consObservable
+                .map(new Func1<Memo, StringBuilder>() {
+                    @Override
+                    public StringBuilder call(Memo memo) {
+                        StringBuilder stringBuilder = new StringBuilder();
+                        stringBuilder
+                                .append("* ")
+                                .append(memo.getCitationResource());
+                        return stringBuilder;
+                    }
+                });
+        Observable<StringBuilder> prosHeader = Observable.just(new StringBuilder("# 賛成派").append(StringUtils.getCRLF()));
+        Observable<StringBuilder> consHeader = Observable.just(new StringBuilder(StringUtils.getCRLF()).append("# 反対派").append(StringUtils.getCRLF()));
+        return Observable
+                .concat(
+                prosHeader, pros,
+                consHeader, cons
+        )
+                .observeOn(Schedulers.computation())
+                .reduce(new StringBuilder(),
+                        new Func2<StringBuilder, StringBuilder, StringBuilder>() {
+                            @Override
+                            public StringBuilder call(StringBuilder stringBuilder, StringBuilder stringBuilder2) {
+                                return stringBuilder.append(StringUtils.getCRLF()).append(stringBuilder2);
+                            }
+                        })
+                .map(new Func1<StringBuilder, Pair<Long, StringBuilder>>() {
+                    @Override
+                    public Pair<Long, StringBuilder> call(StringBuilder stringBuilder) {
+                        return Pair.create(themeId, stringBuilder);
+                    }
+                });
+    }
+
 }

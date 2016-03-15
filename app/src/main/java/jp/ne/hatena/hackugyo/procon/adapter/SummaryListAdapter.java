@@ -207,4 +207,11 @@ public class SummaryListAdapter  extends RecyclerView.Adapter<SummaryListAdapter
             super(itemView);
         }
     }
+
+    public Observable getProsObservable() {
+        return Observable.from(self.pros);
+    }
+    public Observable getConsObservable() {
+        return Observable.from(self.cons);
+    }
 }

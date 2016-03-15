@@ -152,12 +152,12 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     private NavigationView drawerRight;
     private EditText themeEditText;
     private BootstrapButton themeDeleteButton;
-    private BootstrapButton themeExportButton;
+    private BootstrapButton themeExportButton, citationsExportButton;
     private BootstrapButton reorderMemosButton;
     private RecyclerClickable imageOnClickRecyclerListener;
     private ImageView imageThumbnailView;
     /**
-     * メインのRecylerView（{@link #mainRecyclerView}）が並べ替え可能状態かどうか
+     * メインのRecyclerView（{@link #mainRecyclerView}）が並べ替え可能状態かどうか
      */
     private boolean isInReorderMode = false;
 
@@ -562,6 +562,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         provideThemeDeleteButton();
         provideReorderMemosButton();
         provideThemeExportButton();
+        provideCitationsExportButton();
     }
 
     private BootstrapButton provideThemeDeleteButton() {
@@ -639,7 +640,9 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                                     if (result.first != chatTheme.getId()) {
                                         return;
                                     } else {
-                                        sendText(result.second.toString(), chatTheme.getTitle());
+                                        sendText(
+                                                result.second.insert(0, chatTheme.getTitle() + StringUtils.getCRLF()).toString(),
+                                                chatTheme.getTitle());
                                     }
                                 }
                             });
@@ -647,6 +650,41 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
             });
         }
         return themeExportButton;
+    }
+
+    private BootstrapButton provideCitationsExportButton() {
+        if (citationsExportButton == null) {
+            citationsExportButton = (BootstrapButton) provideRightDrawer().findViewById(R.id.button_export_citations);
+            citationsExportButton.setBootstrapBrand(CustomBootStrapBrand.OTHER);
+            citationsExportButton.setGravity(Gravity.LEFT|Gravity.CENTER_VERTICAL);
+            citationsExportButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    showProgressDialog();
+                    // mainActivityHelper.
+                    MainActivityHelper.createExportationCitationsObservable(
+                            chatTheme.getId(),
+                            summaryListAdapter.getProsObservable(),
+                            summaryListAdapter.getConsObservable()
+                    )
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .subscribe(new Action1<Pair<Long, StringBuilder>>() {
+                                @Override
+                                public void call(Pair<Long, StringBuilder> result) {
+                                    hideProgressDialog();
+                                    if (result.first != chatTheme.getId()) {
+                                        return;
+                                    } else {
+                                        sendText(
+                                                result.second.insert(0, chatTheme.getTitle() + StringUtils.getCRLF()).toString(),
+                                                chatTheme.getTitle());
+                                    }
+                                }
+                            });
+                }
+            });
+        }
+        return citationsExportButton;
     }
 
     /**
