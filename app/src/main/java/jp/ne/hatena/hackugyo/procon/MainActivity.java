@@ -221,7 +221,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
         reloadChatThemeList();
         final long latestChatThemeId = AppApplication.getSharedPreferences().getLong(SHARED_PREFERENCE_LAST_THEME_ID, 0);
-        chatTheme = Observable.from(chatThemeList).firstOrDefault(ArrayUtils.last(chatThemeList), new Func1<ChatTheme, Boolean>() {
+        chatTheme = Observable.from(chatThemeList).firstOrDefault(null, new Func1<ChatTheme, Boolean>() {
             @Override
             public Boolean call(ChatTheme chatTheme) {
                 return chatTheme.getId() == latestChatThemeId;
