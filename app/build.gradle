@@ -122,7 +122,6 @@ repositories {
 dependencies {
     // basic
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile fileTree(dir: 'libs', include: ['*.jar'])
     compile "com.android.support:support-v4:$SUPPORT_LIBRARY_VERSION"
     compile "com.android.support:appcompat-v7:$SUPPORT_LIBRARY_VERSION"
     compile "com.android.support:design:$SUPPORT_LIBRARY_VERSION"
@@ -141,9 +140,9 @@ dependencies {
     compile "com.squareup.okhttp:logging-interceptor:$OKHTTP_VERSION"
     compile "com.squareup.okhttp:okhttp-urlconnection:$OKHTTP_VERSION"
     //  compile "com.squareup.okhttp3:okhttp-urlconnection:$OKHTTP3_VERSION"
-    compile "com.squareup.retrofit:retrofit:$RETROFIT_VERSION"
-    compile "com.squareup.retrofit:adapter-rxjava:$RETROFIT_VERSION"
-    compile "com.squareup.retrofit:converter-gson:$RETROFIT_VERSION"
+    // compile "com.squareup.retrofit:retrofit:$RETROFIT_VERSION"
+    // compile "com.squareup.retrofit:adapter-rxjava:$RETROFIT_VERSION"
+    // compile "com.squareup.retrofit:converter-gson:$RETROFIT_VERSION"
 
     compile 'com.squareup.picasso:picasso:2.5.2'
 
@@ -156,7 +155,6 @@ dependencies {
     compile 'com.github.kubode:rxeventbus:1.0.1'
 
     // Database library.
-    compile 'io.realm:realm-android:0.87.0'
     compile 'com.j256.ormlite:ormlite-android:4.48'
 
     // Url Preview
