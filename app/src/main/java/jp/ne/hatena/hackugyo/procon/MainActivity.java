@@ -1085,7 +1085,12 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
      ***********************************************/
 
     private ChatTheme createInitialChatTheme() {
-        return createInitialChatTheme("最初の議題");
+        ChatTheme result = createInitialChatTheme("最初の議題");
+        memos.clear();
+        memos.addAll(MainActivityHelper.createInitialMemoSamples(result));
+        chatTheme = result; // ここで反映してからupdateMemoAsyncを呼ぶ
+        updateMemoAsync(memos);
+        return result;
     }
 
     private ChatTheme createInitialChatTheme(String title) {
@@ -1332,6 +1337,8 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     private void reloadChatThemeAsync() {
         reloadChatThemeList();
         reloadChatThemeMenu();
+        // chatThemeと1:N関係にあるmemoを更新するために、chatThemeじたいを更新する。
+        chatTheme =  chatThemeRepository.findById(chatTheme.getId());
         getLoadMemoObservable()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
@@ -1346,6 +1353,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     }
 
     private void deleteCurrentChatThemeAsync() {
+        showProgressDialog();
         Observable.from(memos)
                 .subscribeOn(Schedulers.io()) // doOnNextを走らせる
                 .doOnNext(new Action1<Memo>() {
@@ -1365,6 +1373,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                                 ChatTheme first = chatThemeRepository.findFirst();
                                 chatTheme = (first == null ? createInitialChatTheme() : first);
                                 reloadChatThemeAsync();
+                                hideProgressDialog();
                             }
                         })
                 .subscribe();

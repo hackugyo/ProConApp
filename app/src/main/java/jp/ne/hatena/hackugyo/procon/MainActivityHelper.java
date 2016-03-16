@@ -14,10 +14,12 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.IllegalFormatCodePointException;
 import java.util.List;
 
 import jp.ne.hatena.hackugyo.procon.io.ImprovedTextCrawler;
+import jp.ne.hatena.hackugyo.procon.model.ChatTheme;
 import jp.ne.hatena.hackugyo.procon.model.CitationResource;
 import jp.ne.hatena.hackugyo.procon.model.CitationResourceRepository;
 import jp.ne.hatena.hackugyo.procon.model.Memo;
@@ -378,6 +380,37 @@ public class MainActivityHelper {
                         return Pair.create(themeId, stringBuilder);
                     }
                 });
+    }
+
+    static List<Memo> createInitialMemoSamples(ChatTheme chatTheme) {
+        Calendar cal = Calendar.getInstance();
+        ArrayList<Memo> result = new ArrayList<Memo>();
+        {
+            Memo memo = createMemo("議論のなかには、賛成派の意見も、反対派の意見も登場します。", cal,
+                    "Imaginary, 2016", "1-100", true);
+            memo.setChatTheme(chatTheme);
+            memo.setPosition(0);
+            result.add(memo);
+        }
+        {
+            Memo memo = createMemo("ときには、いましている議論が、テーマに賛成なのか、反対なのか、わからなくなってしまうことも……。", cal, "https://pdos.csail.mit.edu/archive/scigen/", "", false);
+            memo.setChatTheme(chatTheme);
+            memo.setPosition(0);
+            result.add(memo);
+        }
+        {
+            Memo memo = createMemo("このアプリが解決します！", cal, "", "", true);
+            memo.setChatTheme(chatTheme);
+            memo.setPosition(0);
+            result.add(memo);
+        }
+        {
+            Memo memo = createMemo("", cal, "https://twitter.com/hackugyo/status/698124800078827520", "", false);
+            memo.setChatTheme(chatTheme);
+            memo.setPosition(0);
+            result.add(memo);
+        }
+        return result;
     }
 
 

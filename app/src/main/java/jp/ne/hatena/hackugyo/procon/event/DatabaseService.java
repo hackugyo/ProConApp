@@ -58,21 +58,14 @@ public class DatabaseService implements Subscribable<RequestDataSaveEvent> {
     @Override
     public void onEventAsync(RequestDataSaveEvent event) {
         List<Memo> memos = event.memos;
-        if (memos.size() == 1) {
-            Memo memo = memos.get(0);
-            if (memoRepository.save(memo)) {
-                bus.post(new DataSavedEvent(memo, true));
-            } else {
-                bus.post(new DataSavedEvent(memo, false));
-            }
-        } else {
-            ArrayList<Pair<Memo, Boolean>> pairs = new ArrayList<>();
-            for (Memo memo : memos) {
-                boolean save = memoRepository.save(memo); // ここでmemoインスタンスに必要ならidがふられる
-                pairs.add(Pair.create(memo, save));
-            }
-            bus.post(new DataSavedEvent(pairs));
+
+        ArrayList<Pair<Memo, Boolean>> pairs = new ArrayList<>();
+        for (Memo memo : memos) {
+            boolean save = memoRepository.save(memo); // ここでmemoインスタンスに必要ならidがふられる
+            pairs.add(Pair.create(memo, save));
         }
+        bus.post(new DataSavedEvent(pairs));
+
     }
 
     public void onEventAsync(RequestDataDeleteEvent event) {
