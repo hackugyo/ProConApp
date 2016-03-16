@@ -175,6 +175,10 @@ public class Memo {
         this.citationResources.add(new CitationResource(resource));
     }
 
+    public void setPosition(long position) {
+        this.position = position;
+    }
+
     public String getImageUrl() {
         if (getCitationResources() == null) return null;
         SourceContent sourceContent = getSourceContent();

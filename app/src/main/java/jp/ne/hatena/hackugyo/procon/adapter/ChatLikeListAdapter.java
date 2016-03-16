@@ -307,7 +307,7 @@ public class ChatLikeListAdapter extends RecyclerView.Adapter<ChatLikeListAdapte
         public void setMemoText(Memo memo) {
             String memoText = memo.getMemo();
             if (StringUtils.isEmpty(memoText)) {
-                txtMessage.setText(memo.isLoaded() ? "読込失敗" : "読込中");
+                txtMessage.setText(memo.isLoaded() ? "Web読込失敗" : "Web読込中");
             } else {
                 txtMessage.setText(memoText);
             }

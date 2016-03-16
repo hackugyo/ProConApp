@@ -380,4 +380,21 @@ public class MainActivityHelper {
                 });
     }
 
+
+    /**
+     * ポジション{@link Memo#position}・議題{@link Memo#chatTheme}なしのメモを1つ生成する
+     * @param text
+     * @param cal
+     * @param resource
+     * @param pages
+     * @param isPro
+     * @return
+     */
+    static Memo createMemo(String text, Calendar cal, String resource, String pages, boolean isPro) {
+        Memo memo = new Memo(cal, text, isPro);
+        memo.addCitationResource(StringUtils.stripLast(resource));
+        memo.setPages(pages);
+        return memo;
+    }
+
 }

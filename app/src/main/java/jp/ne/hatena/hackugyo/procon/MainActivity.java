@@ -762,7 +762,11 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         if (StringUtils.isPresent(content) || UrlUtils.isValidWebUrl(citationResource)) {
             Calendar cal = Calendar.getInstance();
             //保存処置
-            Memo memo = createMemo(content, cal, citationResource, viewProvider.pagesEditText.getText().toString(), asPro);
+            Memo memo = MainActivityHelper.createMemo(content, cal, citationResource, viewProvider.pagesEditText.getText().toString(), asPro);
+            {
+                memo.setChatTheme(chatTheme);
+                memo.setPosition(memos.size());
+            }
             if (viewProvider.getImageUri() != null) {
                 if (!ArrayUtils.any(memo.getCitationResources())) memo.addCitationResource("画像取り込み");
                 memo.addCitationResource(viewProvider.getImageUri().toString());
@@ -798,14 +802,6 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         recyclerView.smoothScrollToPosition(position);
     }
 
-    private Memo createMemo(String text, Calendar cal, String resource, String pages, boolean isPro) {
-        Memo memo = new Memo(cal, text, isPro);
-        memo.addCitationResource(StringUtils.stripLast(resource));
-        memo.setPages(pages);
-        memo.setChatTheme(chatTheme);
-        return memo;
-    }
-
     private void insertMemoAsync(Memo memo) {
         RxBusProvider.getInstance().post(new RequestDataSaveEvent(memo));
     }
@@ -839,7 +835,10 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                     mainListAdapter.notifyItemChanged(memos.indexOf(inList));
                 }
             } else {
-                LogUtils.w("something wrong");
+                LogUtils.w("something wrong. Cannot save " + savedMemo);
+                if (inList == null) { // まだ保存されていない
+                    inList = savedMemo;
+                }
                 viewProvider.resumeInputTexts((inList.isForUrl() ? "" : inList.getMemo()), inList.getCitationResource(), inList.getPages());
             }
         }
