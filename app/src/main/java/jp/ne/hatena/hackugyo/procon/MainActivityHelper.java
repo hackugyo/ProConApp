@@ -422,6 +422,12 @@ public class MainActivityHelper {
             memo.setPosition(0);
             result.add(memo);
         }
+        {
+            Memo memo = createMemo("", cal, "https://play.google.com/store/apps/details?id=jp.ne.hatena.hackugyo.procon.app", "", false);
+            memo.setChatTheme(chatTheme);
+            memo.setPosition(0);
+            result.add(memo);
+        }
         return result;
     }
 
