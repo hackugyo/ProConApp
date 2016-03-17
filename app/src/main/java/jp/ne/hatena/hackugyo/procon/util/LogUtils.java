@@ -53,6 +53,11 @@ public final class LogUtils {
         Log.i(tag, getLogForm(Thread.currentThread().getStackTrace()) + msg);
     }
 
+    public static void i(CharSequence msg, Throwable e) {
+        if (!Log.isLoggable(getLogTag(), Log.INFO)) return;
+        Log.i(getLogTag(), getLogForm(Thread.currentThread().getStackTrace()) + msg, e);
+    }
+
     /**
      * エラーログを出力します.
      *

@@ -8,6 +8,7 @@ import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.OkUrlFactory;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
+import com.squareup.okhttp.ResponseBody;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -281,11 +282,12 @@ public class ImprovedTextCrawler {
         Response response = this.okHttpClient.newCall(
                 new Request.Builder().url(finalUrl).get().header("User-Agent", userAgentString).build()
         ).execute();
-        InputStream inputStream = response.body().byteStream();
+        ResponseBody body = response.body();
+        InputStream inputStream = body.byteStream();
         String forceEncode = null; // default or "UTF-8"
         Document parse = Jsoup.parse(inputStream, forceEncode, finalUrl);
         inputStream.close();
-        response.body().close();
+        body.close();
         return parse;
     }
 
@@ -300,7 +302,7 @@ public class ImprovedTextCrawler {
         try {
             in = connection.getInputStream();
         } catch (FileNotFoundException e) { // IOException をキャッチするより先に FileNotFoundException をキャッチしないと IOException のキャッチブロックに行くのでこうする
-            LogUtils.e("Cannot get InputStream ", e );
+            LogUtils.i("Cannot get InputStream ", e);
             InputStream err = null;
             err = connection.getErrorStream();
             // 4xx または 5xx なレスポンスのボディーを読み取る
