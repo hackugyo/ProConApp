@@ -221,7 +221,8 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
 
         reloadChatThemeList();
         final long latestChatThemeId = AppApplication.getSharedPreferences().getLong(SHARED_PREFERENCE_LAST_THEME_ID, 0);
-        chatTheme = Observable.from(chatThemeList).firstOrDefault(null, new Func1<ChatTheme, Boolean>() {
+        ChatTheme defaultChatTheme = ArrayUtils.any(chatThemeList) ? ArrayUtils.last(chatThemeList) : null;
+        chatTheme = Observable.from(chatThemeList).firstOrDefault(defaultChatTheme, new Func1<ChatTheme, Boolean>() {
             @Override
             public Boolean call(ChatTheme chatTheme) {
                 return chatTheme.getId() == latestChatThemeId;
@@ -1141,7 +1142,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
             if (subMenu != null) {
                 subMenu.clear();
 
-                if (chatThemeList.size() == 0) chatTheme = createInitialChatTheme();
+                if (!ArrayUtils.any(chatThemeList)) chatTheme = createInitialChatTheme();
                 for (ChatTheme theme : chatThemeList) {
                     MenuItem add = subMenu.add(R.id.menu_group_sub_child, theme.getId().intValue(), Menu.NONE, theme.getTitle());
                     add.setChecked(theme.getId() == chatTheme.getId());
