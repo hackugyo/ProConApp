@@ -236,12 +236,13 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                         new Action1<List<Memo>>() {
                             @Override
                             public void call(List<Memo> memos) {
-                                renewCitationResources();
                                 mainActivityHelper = new MainActivityHelper(
+                                        self,
                                         new ImprovedTextCrawler(AppApplication.provideOkHttpClient(self)),
                                         mainListAdapter,
                                         self.memos,
                                         memoRepository);
+                                renewCitationResources();
                                 mainActivityHelper.loadPreviewAsync();
                             }
 
@@ -768,7 +769,7 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                 memo.setPosition(memos.size());
             }
             if (viewProvider.getImageUri() != null) {
-                if (!ArrayUtils.any(memo.getCitationResources())) memo.addCitationResource("画像取り込み");
+                if (!ArrayUtils.any(memo.getCitationResources())) memo.addCitationResource(mainActivityHelper == null ? null : mainActivityHelper.systemCreatedImageText);
                 memo.addCitationResource(viewProvider.getImageUri().toString());
             }
             insertMemoAsync(memo);
@@ -1115,7 +1116,9 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
     public void renewCitationResources() {
         // データの更新
         citationResources.clear();
-        citationResources.addAll(MainActivityHelper.createNewCitationResources(memos, citationResourceRepository));
+        if (mainActivityHelper != null) {
+            citationResources.addAll(mainActivityHelper.loadCitationResources(memos, citationResourceRepository));
+        }
         // 表示の更新
         viewProvider.resetCitationResourceSuggestionAdapterAsync(citationResources);
     }

@@ -46,13 +46,15 @@ public class MainActivityHelper {
     private final List<Memo> memos;
     private final Handler handler;
     private final MemoRepository memoRepository;
+    final String systemCreatedImageText;
 
-    MainActivityHelper(ImprovedTextCrawler crawler, RecyclerView.Adapter adapter, List<Memo> memos, MemoRepository memoRepository) {
+    MainActivityHelper(Context context, ImprovedTextCrawler crawler, RecyclerView.Adapter adapter, List<Memo> memos, MemoRepository memoRepository) {
         this.textCrawler = crawler;
         this.adapter = adapter;
         this.memos = memos;
         this.memoRepository = memoRepository;
         this.handler = new Handler();
+        this.systemCreatedImageText = context.getString(R.string.citation_system_created_for_image);
     }
 
     void loadPreviewAsync() {
@@ -245,15 +247,23 @@ public class MainActivityHelper {
         return sourceContent;
     }
 
-    private static Func1<String, Boolean> sIgnoreUrlFilter = new Func1<String, Boolean>() {
+    private Func1<String, Boolean> sIgnoreUriFilter = new Func1<String, Boolean>() {
         @Override
         public Boolean call(String s) {
-            return !StringUtils.isEmpty(s) && !UrlUtils.isValidWebUrl(StringUtils.stripLast(s));
+            return !StringUtils.isEmpty(s) && !UrlUtils.isValidUri(StringUtils.stripLast(s));
+        }
+    };
+    private Func1<String, Boolean> sIgnoreSystemMessageFilter = new Func1<String, Boolean>() {
+        @Override
+        public Boolean call(String s) {
+            return !StringUtils.isSame(s, systemCreatedImageText);
         }
     };
 
-    static List<String> createNewCitationResources(List<Memo> memos, CitationResourceRepository repo) {
 
+
+    List<String> loadCitationResources(List<Memo> memos, CitationResourceRepository repo) {
+        // TODO 20160317 IOスレッド
         Observable<String> memoObservable = Observable
                 .from(memos)
                 .map(new Func1<Memo, String>() {
@@ -263,7 +273,8 @@ public class MainActivityHelper {
                         return memo.getCitationResource();
                     }
                 })
-                .filter(sIgnoreUrlFilter);
+                .filter(sIgnoreUriFilter)
+                .filter(sIgnoreSystemMessageFilter);
         // 気を利かせて、候補なしのときはすべての議題を検索して、候補を提示する
         if (memoObservable.count().toBlocking().single() < 1) {
             memoObservable = Observable.merge(
@@ -276,7 +287,8 @@ public class MainActivityHelper {
                                     return citationResource.getName();
                                 }
                             })
-                            .filter(sIgnoreUrlFilter)
+                            .filter(sIgnoreUriFilter)
+                            .filter(sIgnoreSystemMessageFilter)
             );
         }
         return memoObservable
