@@ -398,20 +398,20 @@ public class MainActivityHelper {
         Calendar cal = Calendar.getInstance();
         ArrayList<Memo> result = new ArrayList<Memo>();
         {
-            Memo memo = createMemo("議論のなかには、賛成派の意見も、反対派の意見も登場します。", cal,
+            Memo memo = createMemo("会議でも、論文でも、議論をしていると、いろいろな意見が飛び交います。", cal,
                     "Imaginary, 2016", "1-100", true);
             memo.setChatTheme(chatTheme);
             memo.setPosition(0);
             result.add(memo);
         }
         {
-            Memo memo = createMemo("ときには、いましている議論が、テーマに賛成なのか、反対なのか、わからなくなってしまうことも……。", cal, "https://pdos.csail.mit.edu/archive/scigen/", "", false);
+            Memo memo = createMemo("ときには、いましている発言が、テーマに賛成なのか、反対なのか、わからなくなってしまうことも……。", cal, "https://pdos.csail.mit.edu/archive/scigen/", "", false);
             memo.setChatTheme(chatTheme);
             memo.setPosition(0);
             result.add(memo);
         }
         {
-            Memo memo = createMemo("このアプリが解決します！", cal, "", "", true);
+            Memo memo = createMemo("このアプリが解決します！" + StringUtils.getCRLF() + "まずは左上のアイコンをタップして、新しい議題を作ってみましょう。", cal, "", "", true);
             memo.setChatTheme(chatTheme);
             memo.setPosition(0);
             result.add(memo);
