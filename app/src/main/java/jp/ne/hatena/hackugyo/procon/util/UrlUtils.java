@@ -67,7 +67,7 @@ public class UrlUtils {
     }
 
     public static boolean isTwitterUrl(String url) {
-        return TWITTER_POST_URL.matcher(url).matches();
+        return TWITTER_POST_URL.matcher(url).matches() && url.contains("status");
     }
 
     private static String TWITTER_DOMAIN_NAME = "(mobile.|)twitter.com";
