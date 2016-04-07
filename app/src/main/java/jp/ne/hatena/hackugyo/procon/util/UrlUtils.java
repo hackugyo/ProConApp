@@ -37,7 +37,7 @@ public class UrlUtils {
      * @param potentialUrl
      * @return valid or not valid
      */
-    public static boolean isValidWebUrl(String potentialUrl) {
+    public static boolean isValidWebUrl(CharSequence potentialUrl) {
         if (potentialUrl == null) return false;
         return Patterns.WEB_URL.matcher(potentialUrl).matches();
     }

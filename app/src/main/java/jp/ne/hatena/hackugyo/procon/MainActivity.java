@@ -247,6 +247,18 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
                                 mainActivityHelper.loadPreviewAsync();
                             }
 
+                        },
+                        new Action1<Throwable>() {
+                            @Override
+                            public void call(Throwable throwable) {
+                                // nothing to do.
+                            }
+                        },
+                        new Action0() {
+                            @Override
+                            public void call() {
+                                checkWhetherIntentIsSend(getIntent());
+                            }
                         }
                 );
     }
@@ -262,6 +274,27 @@ public class MainActivity extends AbsBaseActivity implements AbsCustomDialogFrag
         }
 
         return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        checkWhetherIntentIsSend(intent);
+    }
+
+    private boolean checkWhetherIntentIsSend(Intent intent) {
+        if (intent == null) return false;
+        if (StringUtils.isSame(intent.getAction(), Intent.ACTION_SEND)) {
+            CharSequence charSequence = intent.getExtras().getCharSequence(Intent.EXTRA_TEXT);
+            if (charSequence != null) {
+                if (UrlUtils.isValidWebUrl(charSequence)) {
+                    viewProvider.citationResourceEditText.setText(charSequence);
+                } else {
+                    viewProvider.contentEditText.setText(charSequence);
+                }
+            }
+        }
+        return false;
     }
 
     @Override
